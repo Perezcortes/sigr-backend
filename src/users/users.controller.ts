@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 
 interface User {
   id: number;
@@ -34,9 +34,20 @@ export class UsersController {
   }
 
   @Get(':id')
-  getUserById(@Param('id') id: string): User | undefined {
-    return this.users.find(user => user.id === Number(id)) || undefined;
+  findUser(@Param('id') id: string): User | { error: string } {
+    const user = this.users.find((user) => user.id === Number(id));
+    if (!user) {
+      return {
+        error: 'User not found',
+      };
+    }
+    return user;
   }
 
+  @Post()
+  createUser(@Body() body: User): User {
+    this.users.push(body);
+    return body;
+  }
 
 }

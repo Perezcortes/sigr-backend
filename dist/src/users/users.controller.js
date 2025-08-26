@@ -35,8 +35,18 @@ let UsersController = class UsersController {
     getUsers() {
         return this.users;
     }
-    getUserById(id) {
-        return this.users.find(user => user.id === Number(id)) || undefined;
+    findUser(id) {
+        const user = this.users.find((user) => user.id === Number(id));
+        if (!user) {
+            return {
+                error: 'User not found',
+            };
+        }
+        return user;
+    }
+    createUser(body) {
+        this.users.push(body);
+        return body;
     }
 };
 exports.UsersController = UsersController;
@@ -52,7 +62,14 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Object)
-], UsersController.prototype, "getUserById", null);
+], UsersController.prototype, "findUser", null);
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Object)
+], UsersController.prototype, "createUser", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users')
 ], UsersController);

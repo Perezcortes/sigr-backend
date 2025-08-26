@@ -6,6 +6,9 @@ interface User {
 export declare class UsersController {
     private users;
     getUsers(): User[];
-    getUserById(id: string): User | undefined;
+    findUser(id: string): User | {
+        error: string;
+    };
+    createUser(body: User): User;
 }
 export {};
