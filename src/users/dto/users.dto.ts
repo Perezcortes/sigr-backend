@@ -8,8 +8,9 @@ import {
   IsArray,
   ArrayMinSize,
   ArrayMaxSize,
+  IsBoolean,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 class OfficeDto {
   @ApiProperty({ description: 'ID de la oficina', example: 1 })
@@ -171,4 +172,56 @@ export class UpdateUserDto {
   @ArrayMaxSize(1, { message: 'Solo se puede asignar a una oficina principal' })
   @Type(() => OfficeDto)
   offices?: OfficeDto[];
+}
+
+export class FilterUserDto {
+  @ApiProperty({
+    description: 'Filtro por correo, nombre o apellido',
+    example: 'juan',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiProperty({
+    description: 'Filtrar por ID de rol',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  roleId?: number;
+
+  @ApiProperty({
+    description: 'Filtrar por ID de oficina',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  officeId?: number;
+
+  @ApiProperty({
+    description: 'Filtrar por ID de estado',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  estateId?: number;
+  
+  @ApiProperty({
+    description: 'Filtrar por estado (activo/inactivo)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === '1') return true;
+    if (value === 'false' || value === '0') return false;
+    return value;
+  })
+  is_active?: boolean;
 }

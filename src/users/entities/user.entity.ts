@@ -118,7 +118,7 @@ export class User {
       role: this.role?.nombre?.toLowerCase(), // CORRECCIÓN: Usar 'nombre' de la entidad Role
       oficina: this.office?.nombre, // CORRECCIÓN: Usar 'nombre' de la entidad Office
       permissions: this.role?.permissions?.map((p) => p.name) || [],
-      isActive: this.is_active,
+      isActive: this.is_active, //Para filtro de usuarios activos/inactivos
       created_at: this.created_at,
       updated_at: this.updated_at,
     };

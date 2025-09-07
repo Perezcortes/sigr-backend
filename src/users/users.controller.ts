@@ -1,10 +1,10 @@
-import { Controller, Get, Param, UseGuards, Post, Body, HttpCode, HttpStatus, Patch, Delete } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Param, UseGuards, Post, Body, HttpCode, HttpStatus, Patch, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard, PermissionsGuard, Permissions } from '../auth/guards/auth.guards';
-import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
+import { CreateUserDto, UpdateUserDto, FilterUserDto } from './dto/users.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -17,16 +17,20 @@ export class UsersController {
   @UseGuards(PermissionsGuard)
   @Permissions('ver_usuarios')
   @ApiOperation({
-    summary: 'Obtener todos los usuarios',
-    description: 'Retorna la lista completa de usuarios registrados en el sistema, requiere el permiso "ver_usuarios".',
+    summary: 'Obtener todos los usuarios con filtros',
+    description: 'Retorna la lista completa de usuarios registrados en el sistema, permitiendo filtros por búsqueda general y campos específicos. Requiere el permiso "ver_usuarios".',
   })
+  @ApiQuery({ name: 'search', required: false, description: 'Búsqueda por nombre, apellido o correo.' })
+  @ApiQuery({ name: 'roleId', required: false, description: 'Filtro por ID de rol.' })
+  @ApiQuery({ name: 'officeId', required: false, description: 'Filtro por ID de oficina.' })
+  @ApiQuery({ name: 'is_active', required: false, description: 'Filtro por estado de actividad (true/false).' })
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios obtenida exitosamente.',
     type: [User],
   })
-  async findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  async findAll(@Query() filters: FilterUserDto): Promise<User[]> {
+    return this.usersService.findAll(filters);
   }
 
   @Get(':id')
