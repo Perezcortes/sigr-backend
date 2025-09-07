@@ -10,6 +10,15 @@ import { AppService } from './app.service';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 
+// Entidades necesarias para el seeder
+import { User } from './users/entities/user.entity';
+import { RefreshToken } from './auth/entities/refresh-token.entity';
+import { Role } from './roles/entities/role.entity';
+import { Permission } from './permissions/entities/permission.entity';
+import { Office } from './offices/entities/office.entity';
+import { Estate } from './offices/entities/estate.entity';
+import { City } from './offices/entities/city.entity';
+
 // Módulos
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -22,7 +31,6 @@ import { JwtAuthGuard } from './auth/guards/auth.guards';
 
 // Seeders
 import { InitialSeeder } from './database/seeders/initial.seeder';
-import { RefreshToken } from './auth/entities/refresh-token.entity'; // Importa la entidad
 
 @Module({
   imports: [
@@ -39,8 +47,17 @@ import { RefreshToken } from './auth/entities/refresh-token.entity'; // Importa 
       useFactory: (dbConfig) => dbConfig,
     }),
 
-    // Importa las entidades que el seeder necesita
-    TypeOrmModule.forFeature([RefreshToken]),
+    // CORRECCIÓN: Importar todos los repositorios que el seeder necesita.
+    TypeOrmModule.forFeature([
+      User,
+      RefreshToken,
+      Role,
+      Permission,
+      Office,
+      Estate,
+      City,
+    ]),
+
     // Módulos de funcionalidad
     AuthModule,
     UsersModule,

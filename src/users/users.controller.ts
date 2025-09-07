@@ -1,133 +1,128 @@
-/* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Param, UseGuards, Post, Body, HttpCode, HttpStatus, Patch, Delete } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import { UsersService } from './users.service';
+import { User } from './entities/user.entity';
+import { JwtAuthGuard, PermissionsGuard, Permissions } from '../auth/guards/auth.guards';
+import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class UsersController {
-
-  private users: User[] = [
-    {
-      id: 1,
-      name: 'Carlos',
-      email: 'carlos@rentas.com',
-    },
-    {
-      id: 2,
-      name: 'Roberto',
-      email: 'Roberto@rentas.com',
-    },
-    {
-      id: 3,
-      name: 'Marina',
-      email: 'marina@rentas.com',
-    },
-  ];
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ 
+  @UseGuards(PermissionsGuard)
+  @Permissions('ver_usuarios')
+  @ApiOperation({
     summary: 'Obtener todos los usuarios',
-    description: 'Retorna la lista completa de usuarios registrados en el sistema de rentas'
+    description: 'Retorna la lista completa de usuarios registrados en el sistema, requiere el permiso "ver_usuarios".',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Lista de usuarios obtenida exitosamente',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', example: 1 },
-          name: { type: 'string', example: 'Carlos' },
-          email: { type: 'string', example: 'carlos@rentas.com' }
-        }
-      }
-    }
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios obtenida exitosamente.',
+    type: [User],
   })
-  getUsers(): User[] {
-    return this.users;
+  async findAll(): Promise<User[]> {
+    return this.usersService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ 
+  @UseGuards(PermissionsGuard)
+  @Permissions('ver_usuarios')
+  @ApiOperation({
     summary: 'Buscar usuario por ID',
-    description: 'Busca y retorna un usuario específico usando su ID único'
+    description: 'Busca y retorna un usuario específico usando su ID único, requiere el permiso "ver_usuarios".',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'ID único del usuario a buscar',
     type: 'string',
-    example: '1'
+    example: '1',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Usuario encontrado exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 1 },
-        name: { type: 'string', example: 'Carlos' },
-        email: { type: 'string', example: 'carlos@rentas.com' }
-      }
-    }
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado exitosamente.',
+    type: User,
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Usuario no encontrado',
-    schema: {
-      type: 'object',
-      properties: {
-        error: { type: 'string', example: 'User not found' }
-      }
-    }
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado.',
   })
-  findUser(@Param('id') id: string): User | { error: string } {
-    const user = this.users.find((user) => user.id === Number(id));
-    if (!user) {
-      return {
-        error: 'User not found',
-      };
-    }
-    return user;
+  async findOne(@Param('id') id: string): Promise<User> {
+    return this.usersService.findOne(Number(id));
   }
 
   @Post()
-  @ApiOperation({ 
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PermissionsGuard)
+  @Permissions('crear_usuarios')
+  @ApiOperation({
     summary: 'Crear nuevo usuario',
-    description: 'Crea y registra un nuevo usuario en el sistema de rentas'
+    description: 'Crea una nueva cuenta de usuario, requiere el permiso "crear_usuarios".',
   })
-  @ApiBody({
-    description: 'Datos del nuevo usuario',
-    schema: {
-      type: 'object',
-      required: ['id', 'name', 'email'],
-      properties: {
-        id: { type: 'number', example: 4 },
-        name: { type: 'string', example: 'Ana López' },
-        email: { type: 'string', example: 'ana@rentas.com' }
-      }
-    }
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario creado exitosamente.',
+    type: User,
   })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Usuario creado exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 4 },
-        name: { type: 'string', example: 'Ana López' },
-        email: { type: 'string', example: 'ana@rentas.com' }
-      }
-    }
+  async create(@Body() createUserData: CreateUserDto): Promise<User> {
+    return this.usersService.create(createUserData);
+  }
+
+  @Patch(':id')
+  @UseGuards(PermissionsGuard)
+  @Permissions('editar_usuarios')
+  @ApiOperation({
+    summary: 'Actualizar usuario',
+    description: 'Actualiza la información de un usuario existente, requiere el permiso "editar_usuarios".',
   })
-  createUser(@Body() body: User): User {
-    this.users.push(body);
-    return body;
+  @ApiParam({
+    name: 'id',
+    description: 'ID único del usuario a actualizar',
+    type: 'string',
+    example: '1',
+  })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado exitosamente.',
+    type: User,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado.',
+  })
+  async update(@Param('id') id: string, @Body() updateUserData: UpdateUserDto): Promise<User> {
+    return this.usersService.update(Number(id), updateUserData);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(PermissionsGuard)
+  @Permissions('eliminar_usuarios')
+  @ApiOperation({
+    summary: 'Eliminar usuario',
+    description: 'Elimina un usuario de forma lógica (soft delete), requiere el permiso "eliminar_usuarios".',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID único del usuario a eliminar',
+    type: 'string',
+    example: '1',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Usuario eliminado exitosamente.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado.',
+  })
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.usersService.remove(Number(id));
   }
 }
