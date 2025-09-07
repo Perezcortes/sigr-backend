@@ -1,215 +1,143 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, OneToMany, JoinColumn, BeforeInsert, BeforeUpdate } from "typeorm";
-import { ApiProperty } from "@nestjs/swagger";
-import { Exclude } from "class-transformer";
-import * as bcrypt from "bcrypt";
-import { Role } from "../../roles/entities/role.entity";
-import { Office } from "../../offices/entities/office.entity";
-import { RefreshToken } from "../../auth/entities/refresh-token.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  ManyToMany,
+  OneToMany,
+  JoinColumn,
+  JoinTable,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { Role } from '../../roles/entities/role.entity';
+import { Office } from '../../offices/entities/office.entity';
+import { RefreshToken } from '../../auth/entities/refresh-token.entity';
 
-@Entity("users")
+@Entity('users')
 export class User {
-  @ApiProperty({
-    description: "ID único del usuario",
-    example: "550e8400-e29b-41d4-a716-446655440000",
-  })
-  @PrimaryGeneratedColumn("uuid")
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ApiProperty({
-    description: "Email del usuario",
-    example: "usuario@rentas.com",
-  })
-  @Column({ unique: true })
-  email: string;
+  @Column({ type: 'varchar' })
+  nombres: string;
 
-  @ApiProperty({
-    description: "Nombre de usuario",
-    example: "juanperez",
-    required: false,
-  })
-  @Column({ unique: true, nullable: true, length: 100 })
-  username?: string;
+  @Column({ type: 'varchar' })
+  primer_apellido: string;
 
-  @Exclude()
-  @Column()
-  password_hash: string;
+  @Column({ type: 'varchar', nullable: true })
+  segundo_apellido: string;
 
-  @ApiProperty({
-    description: "Nombre(s) del usuario",
-    example: "Juan",
-  })
-  @Column({ length: 100 })
-  first_name: string;
+  @Column({ type: 'varchar', unique: true })
+  correo: string;
 
-  @ApiProperty({
-    description: "Apellidos del usuario",
-    example: "Pérez García",
-  })
-  @Column({ length: 100 })
-  last_name: string;
+  @Column({ type: 'varchar', length: 15, nullable: true })
+  telefono: string;
 
-  @ApiProperty({
-    description: "Nombre completo del usuario",
-    example: "Juan Pérez García",
-  })
-  @Column({
-    type: "varchar",
-    length: 200,
-    generatedType: "STORED",
-    asExpression: `first_name || ' ' || last_name`,
-  })
-  full_name: string;
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  whatsapp: string;
 
-  @ApiProperty({
-    description: "Teléfono del usuario",
-    example: "+52 55 1234 5678",
-    required: false,
-  })
-  @Column({ length: 20, nullable: true })
-  phone?: string;
+  @Column({ type: 'varchar' })
+  password: string;
 
-  @ApiProperty({
-    description: "URL del avatar del usuario",
-    example: "https://example.com/avatar.jpg",
-    required: false,
-  })
-  @Column({ type: "text", nullable: true })
-  avatar_url?: string;
+  @Column({ name: 'role_id' })
+  role_id: number;
 
-  @ApiProperty({
-    description: "Estado del usuario",
-    example: true,
-  })
-  @Column({ default: true })
-  is_active: boolean;
+  @Column({ type: 'boolean', default: true })
+  is_active: boolean;
 
-  @ApiProperty({
-    description: "Indica si el usuario está verificado",
-    example: false,
-  })
-  @Column({ default: false })
-  is_verified: boolean;
+  @Column({ type: 'int', default: 0 })
+  failed_login_attempts: number;
 
-  @ApiProperty({
-    description: "Fecha de verificación del email",
-    required: false,
-  })
-  @Column({ type: "timestamp", nullable: true })
-  email_verified_at?: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  locked_until: Date | null;
 
-  @ApiProperty({
-    description: "Fecha del último login",
-    required: false,
-  })
-  @Column({ type: "timestamp", nullable: true })
-  last_login_at?: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  last_login_at: Date | null;
 
-  @ApiProperty({
-    description: "Fecha del último cambio de contraseña",
-  })
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-  password_changed_at: Date;
+  @CreateDateColumn()
+  created_at: Date;
 
-  @ApiProperty({
-    description: "Intentos fallidos de login",
-    example: 0,
-  })
-  @Column({ default: 0 })
-  failed_login_attempts: number;
+  @UpdateDateColumn()
+  updated_at: Date;
 
-  @ApiProperty({
-    description: "Fecha hasta la cual el usuario está bloqueado",
-    required: false,
-  })
-  @Column({ type: "timestamp", nullable: true })
-  locked_until?: Date;
+  @DeleteDateColumn()
+  deleted_at: Date;
 
-  @ApiProperty({
-    description: "Indica si tiene 2FA habilitado",
-    example: false,
-  })
-  @Column({ default: false })
-  two_factor_enabled: boolean;
+  // Relaciones
+  @ManyToOne(() => Role, (role) => role.users, { nullable: false })
+  @JoinColumn({ name: 'role_id' })
+  role: Role;
 
-  @Exclude()
-  @Column({ nullable: true })
-  two_factor_secret?: string;
+  @ManyToMany(() => Office, (office) => office.users)
+  @JoinTable({
+    name: 'office_user',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'office_id', referencedColumnName: 'id' },
+  })
+  offices: Office[];
 
-  @ApiProperty({
-    description: "Fecha de creación",
-  })
-  @CreateDateColumn()
-  created_at: Date;
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refresh_tokens: RefreshToken[];
 
-  @ApiProperty({
-    description: "Fecha de última actualización",
-  })
-  @UpdateDateColumn()
-  updated_at: Date;
+  // Getters para compatibilidad con AuthService
+  get email(): string {
+    return this.correo;
+  }
 
-  @ApiProperty({
-    description: "Fecha de eliminación (soft delete)",
-    required: false,
-  })
-  @DeleteDateColumn()
-  deleted_at?: Date;
+  get password_hash(): string {
+    return this.password;
+  }
 
-  // Relaciones
-  @Column()
-  role_id: string;
+  set password_hash(value: string) {
+    this.password = value;
+  }
 
-  @ManyToOne(() => Role, (role) => role.users, { eager: true })
-  @JoinColumn({ name: "role_id" })
-  role: Role;
+  get full_name(): string {
+    const segundo = this.segundo_apellido ? ` ${this.segundo_apellido}` : '';
+    return `${this.nombres} ${this.primer_apellido}${segundo}`;
+  }
 
-  @Column({ nullable: true })
-  office_id?: string;
+  get office(): Office | undefined {
+    return this.offices?.[0]; // Primera oficina como oficina principal
+  }
 
-  @ManyToOne(() => Office, (office) => office.users, { eager: true })
-  @JoinColumn({ name: "office_id" })
-  office?: Office;
+  get office_id(): number | undefined {
+    return this.offices?.[0]?.id;
+  }
 
-  @Column({ nullable: true })
-  created_by?: string;
+  // Métodos para autenticación
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashPassword() {
+    if (this.password && !this.password.startsWith('$2b$')) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
+  }
 
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: "created_by" })
-  creator?: User;
+  async validatePassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
+  }
 
-  @Column({ nullable: true })
-  updated_by?: string;
+  isLocked(): boolean {
+    return this.locked_until ? this.locked_until > new Date() : false;
+  }
 
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: "updated_by" })
-  updater?: User;
-
-  @OneToMany(() => RefreshToken, (token) => token.user)
-  refresh_tokens: RefreshToken[];
-
-  // Métodos de utilidad
-  @BeforeInsert()
-  @BeforeUpdate()
-  async hashPassword() {
-    if (this.password_hash && !this.password_hash.startsWith("$2b$")) {
-      this.password_hash = await bcrypt.hash(this.password_hash, 12);
-      this.password_changed_at = new Date();
-    }
-  }
-
-  async validatePassword(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.password_hash);
-  }
-
-  isLocked(): boolean {
-    return !!(this.locked_until && this.locked_until > new Date());
-  }
-
-  // Método para obtener datos públicos (sin información sensible)
-  toPublic() {
-    const { password_hash, two_factor_secret, ...publicData } = this;
-    return {
-      ...publicData,
-      permissions: this.role?.permissions?.map((p) => p.name) || [],
-    };
-  }
+  toPublic() {
+    return {
+      id: this.id.toString(), // Convertir a string para compatibilidad
+      email: this.email,
+      name: this.full_name,
+      role: this.role?.nombre?.toLowerCase(), // CORRECCIÓN: Usar 'nombre' de la entidad Role
+      oficina: this.office?.nombre, // CORRECCIÓN: Usar 'nombre' de la entidad Office
+      permissions: this.role?.permissions?.map((p) => p.name) || [],
+      isActive: this.is_active,
+      created_at: this.created_at,
+      updated_at: this.updated_at,
+    };
+  }
 }

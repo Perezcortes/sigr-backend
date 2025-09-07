@@ -1,5 +1,6 @@
+// src/auth/dto/auth.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, IsOptional, IsUUID } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsNumberString } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
@@ -52,18 +53,18 @@ export class RegisterDto {
 
   @ApiProperty({
     description: 'ID del rol del usuario',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    example: '1',
   })
-  @IsUUID(4, { message: 'Debe proporcionar un ID de rol válido' })
+  @IsNumberString({}, { message: 'Debe proporcionar un ID de rol válido' })
   role_id: string;
 
   @ApiProperty({
     description: 'ID de la oficina del usuario',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    example: '1',
     required: false,
   })
   @IsOptional()
-  @IsUUID(4, { message: 'Debe proporcionar un ID de oficina válido' })
+  @IsNumberString({}, { message: 'Debe proporcionar un ID de oficina válido' })
   office_id?: string;
 
   @ApiProperty({

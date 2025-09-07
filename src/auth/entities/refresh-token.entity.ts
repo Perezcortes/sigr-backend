@@ -1,3 +1,4 @@
+// src/auth/entities/refresh-token.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -16,7 +17,7 @@ export class RefreshToken {
   id: string;
 
   @Column()
-  user_id: string;
+  user_id: number; // Cambiado a number para coincidir con User.id
 
   @ManyToOne(() => User, (user) => user.refresh_tokens, {
     onDelete: 'CASCADE',

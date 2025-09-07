@@ -20,6 +20,9 @@ import { OfficesModule } from './offices/offices.module';
 // Guards globales
 import { JwtAuthGuard } from './auth/guards/auth.guards';
 
+// Seeders
+import { InitialSeeder } from './database/seeders/initial.seeder';
+
 @Module({
   imports: [
     // Configuración de variables de entorno
@@ -45,6 +48,7 @@ import { JwtAuthGuard } from './auth/guards/auth.guards';
   controllers: [AppController],
   providers: [
     AppService,
+    InitialSeeder, // Agregar el seeder aquí
     // Aplicar JwtAuthGuard globalmente (opcional)
     // {
     //   provide: APP_GUARD,

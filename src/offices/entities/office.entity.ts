@@ -5,148 +5,88 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToMany,
-  OneToOne,
+  ManyToOne,
+  ManyToMany,
   JoinColumn,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
+import { City } from './city.entity';
+import { Estate } from './estate.entity';
 
 @Entity('offices')
 export class Office {
-  @ApiProperty({
-    description: 'ID único de la oficina',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ApiProperty({
-    description: 'Nombre de la oficina',
-    example: 'Oficina Centro',
-  })
-  @Column({ length: 100 })
-  name: string;
+  @Column({ type: 'varchar', length: 255 })
+  nombre: string;
 
-  @ApiProperty({
-    description: 'Código único de la oficina',
-    example: 'OFC001',
-    required: false,
-  })
-  @Column({ unique: true, length: 20, nullable: true })
-  code?: string;
+  @Column({ type: 'varchar', nullable: true })
+  telefono: string;
 
-  @ApiProperty({
-    description: 'Descripción de la oficina',
-    example: 'Oficina ubicada en el centro de la ciudad',
-    required: false,
-  })
-  @Column({ type: 'text', nullable: true })
-  description?: string;
+  @Column({ type: 'varchar', nullable: true })
+  correo: string;
 
-  @ApiProperty({
-    description: 'Dirección de la oficina',
-    example: 'Av. Principal 123, Centro',
-    required: false,
-  })
-  @Column({ type: 'text', nullable: true })
-  address?: string;
+  @Column({ type: 'varchar', nullable: true })
+  responsable: string;
 
-  @ApiProperty({
-    description: 'Ciudad',
-    example: 'Ciudad de México',
-    required: false,
-  })
-  @Column({ length: 100, nullable: true })
-  city?: string;
+  @Column({ type: 'varchar', nullable: true })
+  clave: string;
 
-  @ApiProperty({
-    description: 'Estado',
-    example: 'CDMX',
-    required: false,
-  })
-  @Column({ length: 100, nullable: true })
-  state?: string;
+  @Column({ type: 'boolean', default: true })
+  estatus_actividad: boolean;
 
-  @ApiProperty({
-    description: 'Código postal',
-    example: '01000',
-    required: false,
-  })
-  @Column({ length: 20, nullable: true })
-  postal_code?: string;
+  @Column({ type: 'boolean', default: true })
+  estatus_recibir_leads: boolean;
 
-  @ApiProperty({
-    description: 'País',
-    example: 'México',
-  })
-  @Column({ length: 50, default: 'México' })
-  country: string;
+  @Column({ type: 'varchar', nullable: true })
+  calle: string;
 
-  @ApiProperty({
-    description: 'Teléfono de la oficina',
-    example: '+52 55 1234 5678',
-    required: false,
-  })
-  @Column({ length: 20, nullable: true })
-  phone?: string;
+  @Column({ type: 'varchar', nullable: true })
+  numero_interior: string;
 
-  @ApiProperty({
-    description: 'Email de la oficina',
-    example: 'centro@rentas.com',
-    required: false,
-  })
-  @Column({ length: 100, nullable: true })
-  email?: string;
+  @Column({ type: 'varchar', nullable: true })
+  numero_exterior: string;
 
-  @ApiProperty({
-    description: 'Estado de la oficina',
-    example: true,
-  })
-  @Column({ default: true })
-  is_active: boolean;
+  @Column({ type: 'varchar', nullable: true })
+  colonia: string;
 
-  @ApiProperty({
-    description: 'Indica si es la oficina principal',
-    example: false,
-  })
-  @Column({ default: false })
-  is_headquarters: boolean;
+  @Column({ type: 'varchar', nullable: true })
+  delegacion_municipio: string;
 
-  @ApiProperty({
-    description: 'Límite máximo de usuarios',
-    example: 50,
-  })
-  @Column({ default: 50 })
-  max_users: number;
+  @Column({ name: 'ciudad', nullable: true })
+  ciudad: number;
 
-  @ApiProperty({
-    description: 'Fecha de creación',
-  })
+  @Column({ name: 'estate_id', nullable: true })
+  estate_id: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  codigo_postal: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  lat: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  lng: number;
+
   @CreateDateColumn()
   created_at: Date;
 
-  @ApiProperty({
-    description: 'Fecha de última actualización',
-  })
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ApiProperty({
-    description: 'Fecha de eliminación (soft delete)',
-    required: false,
-  })
   @DeleteDateColumn()
-  deleted_at?: Date;
+  deleted_at: Date;
 
   // Relaciones
-  @OneToMany(() => User, (user) => user.office)
+  @ManyToOne(() => City, { nullable: true })
+  @JoinColumn({ name: 'ciudad' })
+  city: City;
+
+  @ManyToOne(() => Estate, { nullable: true })
+  @JoinColumn({ name: 'estate_id' })
+  estate: Estate;
+
+  @ManyToMany(() => User, (user) => user.offices)
   users: User[];
-
-  @Column({ nullable: true })
-  manager_id?: string;
-
-  @OneToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'manager_id' })
-  manager?: User;
 }

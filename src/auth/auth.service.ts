@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, BadRequestException, ConflictException, NotFoundException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, FindOptionsWhere } from "typeorm";
 import type { ConfigType } from "@nestjs/config";
 import * as bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
@@ -15,388 +15,373 @@ import jwtConfig from "../config/jwt.config";
 import { LoginDto, RegisterDto, RefreshTokenDto, ChangePasswordDto, LoginResponseDto, RefreshResponseDto } from "./dto/auth.dto";
 
 export interface JwtPayload {
-  sub: string;
-  email: string;
-  role: string;
-  office_id?: string;
-  permissions: string[];
-  iat?: number;
-  exp?: number;
+  sub: string;
+  email: string;
+  role: string;
+  office_id?: number;
+  permissions: string[];
+  iat?: number;
+  exp?: number;
 }
 
 export interface DeviceInfo {
-  ip?: string;
-  userAgent?: string;
-  device?: any;
+  ip?: string;
+  userAgent?: string;
+  device?: any;
 }
 
 @Injectable()
 export class AuthService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(RefreshToken)
-    private readonly refreshTokenRepository: Repository<RefreshToken>,
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
-    @InjectRepository(Office)
-    private readonly officeRepository: Repository<Office>,
-    private readonly jwtService: JwtService,
-    @Inject(jwtConfig.KEY)
-    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
-  ) {}
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+    @InjectRepository(Office)
+    private readonly officeRepository: Repository<Office>,
+    private readonly jwtService: JwtService,
+    @Inject(jwtConfig.KEY)
+    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+  ) {}
 
-  /**
-   * Autenticar usuario con email y contraseña
-   */
-  async login(loginDto: LoginDto, deviceInfo?: DeviceInfo): Promise<LoginResponseDto> {
-    const { email, password } = loginDto;
+  /**
+   * Autenticar usuario con email y contraseña
+   */
+  async login(loginDto: LoginDto, deviceInfo?: DeviceInfo): Promise<LoginResponseDto> {
+    const { email, password } = loginDto;
 
-    // Buscar usuario con relaciones - usando query builder para más control
-    const user = await this.userRepository.createQueryBuilder("user").leftJoinAndSelect("user.role", "role").leftJoinAndSelect("role.permissions", "permissions").leftJoinAndSelect("user.office", "office").where("user.email = :email", { email }).getOne();
+    // Buscar usuario usando 'correo' y cargar relaciones
+    const user = await this.userRepository.findOne({
+      where: { correo: email },
+      relations: ['role', 'role.permissions', 'offices'],
+    });
 
-    // ALTERNATIVA: Si se prefiere usar findOne, asegúrate de que las relaciones estén bien configuradas
-    // const user = await this.userRepository.findOne({
-    //   where: { email },
-    //   relations: {
-    //     role: {
-    //       permissions: true
-    //     },
-    //     office: true
-    //   },
-    // });
+    if (!user) {
+      await this.incrementFailedAttempts(email);
+      throw new UnauthorizedException("Credenciales inválidas");
+    }
 
-    if (!user) {
-      await this.incrementFailedAttempts(email);
-      throw new UnauthorizedException("Credenciales inválidas");
-    }
+    // Verificar si el usuario está bloqueado
+    if (user.isLocked()) {
+      throw new UnauthorizedException(`Usuario bloqueado hasta ${user.locked_until?.toLocaleString()}`);
+    }
 
-    // DEBUG: Agregar logs temporales para identificar el problema
-    console.log("User found:", {
-      id: user.id,
-      email: user.email,
-      role: user.role?.name,
-      roleId: user.role?.id,
-      permissionsCount: user.role?.permissions?.length || 0,
-      permissions: user.role?.permissions?.map((p) => ({ id: p.id, name: p.name })),
-    });
+    // Verificar si el usuario está activo
+    if (!user.is_active) {
+      throw new UnauthorizedException("Usuario inactivo");
+    }
 
-    // Verificar si el usuario está bloqueado
-    if (user.isLocked()) {
-      throw new UnauthorizedException(`Usuario bloqueado hasta ${user.locked_until?.toLocaleString()}`);
-    }
+    // Validar contraseña
+    const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) {
+      await this.incrementFailedAttempts(user.id.toString());
+      throw new UnauthorizedException("Credenciales inválidas");
+    }
 
-    // Verificar si el usuario está activo
-    if (!user.is_active) {
-      throw new UnauthorizedException("Usuario inactivo");
-    }
+    // Resetear intentos fallidos y actualizar último login
+    await this.resetFailedAttempts(user.id.toString());
+    await this.updateLastLogin(user.id.toString());
 
-    // Validar contraseña
-    const isPasswordValid = await user.validatePassword(password);
-    if (!isPasswordValid) {
-      await this.incrementFailedAttempts(user.id);
-      throw new UnauthorizedException("Credenciales inválidas");
-    }
+    // Generar tokens
+    const tokens = await this.generateTokens(user, deviceInfo);
 
-    // Resetear intentos fallidos y actualizar último login
-    await this.resetFailedAttempts(user.id);
-    await this.updateLastLogin(user.id);
+    // Extraer permisos correctamente
+    const permissions = user.role?.permissions?.map((p) => p.name) || [];
 
-    // Generar tokens
-    const tokens = await this.generateTokens(user, deviceInfo);
+    // Formatear respuesta usando los getters de la entidad
+    const userResponse = {
+      id: user.id.toString(),
+      email: user.email,
+      name: user.full_name,
+      role: user.role.nombre.toLowerCase(), // Usar 'nombre' no 'name'
+      oficina: user.office?.nombre, // Usar 'nombre' no 'name'
+      permissions: permissions,
+      isActive: user.is_active,
+    };
 
-    // Extraer permisos correctamente
-    const permissions = user.role?.permissions?.map((p) => p.name) || [];
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      user: userResponse,
+      expires_in: 86400, // 24 horas en segundos
+      token_type: "Bearer",
+    };
+  }
 
-    // DEBUG: Log final de permisos
-    console.log("Final permissions:", permissions);
+  /**
+   * Registrar nuevo usuario
+   */
+  async register(registerDto: RegisterDto, createdBy?: string): Promise<{ user: any; message: string }> {
+    const { email, password, first_name, last_name, role_id, office_id, phone } = registerDto;
 
-    // Formatear respuesta según el frontend
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.full_name,
-      role: user.role.name.toLowerCase() as any,
-      oficina: user.office?.name,
-      permissions: permissions,
-      isActive: user.is_active,
-    };
+    // Verificar si el email ya existe usando 'correo'
+    const existingUser = await this.userRepository.findOne({
+      where: { correo: email },
+    });
 
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-      user: userResponse,
-      expires_in: 86400, // 24 horas en segundos
-      token_type: "Bearer",
-    };
-  }
+    if (existingUser) {
+      throw new ConflictException("El email ya está registrado");
+    }
 
-  /**
-   * Registrar nuevo usuario
-   */
-  async register(registerDto: RegisterDto, createdBy?: string): Promise<{ user: any; message: string }> {
-    const { email, password, role_id, office_id, ...userData } = registerDto;
+    // Verificar que el rol existe
+    const role = await this.roleRepository.findOne({
+      where: { id: Number(role_id), is_active: true },
+    });
 
-    // Verificar si el email ya existe
-    const existingUser = await this.userRepository.findOne({
-      where: { email },
-    });
+    if (!role) {
+      throw new BadRequestException("Rol no válido");
+    }
 
-    if (existingUser) {
-      throw new ConflictException("El email ya está registrado");
-    }
+    // Verificar que la oficina existe (si se proporciona)
+    let office: Office | null = null;
+    if (office_id) {
+      office = await this.officeRepository.findOne({
+        // CORRECCIÓN: Usar 'estatus_actividad' en lugar de 'is_active'
+        where: { id: Number(office_id), estatus_actividad: true },
+      });
 
-    // Verificar que el rol existe
-    const role = await this.roleRepository.findOne({
-      where: { id: role_id, is_active: true },
-    });
+      if (!office) {
+        throw new BadRequestException("Oficina no válida");
+      }
+    }
 
-    if (!role) {
-      throw new BadRequestException("Rol no válido");
-    }
+    // Crear usuario usando los nombres de campos correctos
+    const user = this.userRepository.create({
+      nombres: first_name,
+      primer_apellido: last_name.split(' ')[0] || last_name,
+      segundo_apellido: last_name.split(' ')[1] || null,
+      correo: email,
+      telefono: phone || null,
+      password: password, // Se hashea automáticamente en el entity
+      role_id: Number(role_id),
+      is_active: true,
+    });
 
-    // Verificar que la oficina existe (si se proporciona)
-    let office: Office | null = null;
-    if (office_id) {
-      office = await this.officeRepository.findOne({
-        where: { id: office_id, is_active: true },
-      });
+    // CORRECCIÓN: Al usar .save() con un solo objeto, TypeORM devuelve el objeto guardado, no un array.
+    const savedUser = await this.userRepository.save(user);
 
-      if (!office) {
-        throw new BadRequestException("Oficina no válida");
-      }
-    }
+    // Si hay oficina, asignarla usando la relación many-to-many
+    if (office) {
+      savedUser.offices = [office];
+      await this.userRepository.save(savedUser);
+    }
 
-    // Crear usuario
-    const user = this.userRepository.create({
-      ...userData,
-      email,
-      password_hash: password, // Se hashea automáticamente en el entity
-      role_id,
-      office_id,
-      created_by: createdBy,
-      is_verified: false,
-    });
+    // Cargar relaciones para la respuesta
+    const userWithRelations = await this.userRepository.findOne({
+      where: { id: savedUser.id },
+      relations: ["role", "role.permissions", "offices"],
+    });
 
-    const savedUser = await this.userRepository.save(user);
+    return {
+      user: userWithRelations?.toPublic(),
+      message: "Usuario registrado exitosamente",
+    };
+  }
 
-    // Cargar relaciones para la respuesta
-    const userWithRelations = await this.userRepository.findOne({
-      where: { id: savedUser.id },
-      relations: ["role", "role.permissions", "office"],
-    });
+  /**
+   * Refrescar token de acceso
+   */
+  async refreshToken(refreshDto: RefreshTokenDto, deviceInfo?: DeviceInfo): Promise<RefreshResponseDto> {
+    const { refresh_token } = refreshDto;
 
-    return {
-      user: userWithRelations?.toPublic(),
-      message: "Usuario registrado exitosamente",
-    };
-  }
+    // Buscar el refresh token en la base de datos
+    const refreshTokenRecord = await this.refreshTokenRepository.findOne({
+      where: {
+        token_hash: refresh_token,
+        is_revoked: false,
+      },
+      relations: ["user", "user.role", "user.role.permissions", "user.offices"],
+    });
 
-  /**
-   * Refrescar token de acceso
-   */
-  async refreshToken(refreshDto: RefreshTokenDto, deviceInfo?: DeviceInfo): Promise<RefreshResponseDto> {
-    const { refresh_token } = refreshDto;
+    if (!refreshTokenRecord) {
+      throw new UnauthorizedException("Token de refresco inválido");
+    }
 
-    // PROBLEMA: Buscar el refresh token en la base de datos SIN filtro por token
-    // INCORRECTO:
-    // const refreshTokenRecord = await this.refreshTokenRepository.findOne({
-    //   where: { is_revoked: false }, // Falta filtrar por token_hash
-    //   relations: ['user', 'user.role', 'user.role.permissions', 'user.office'],
-    // });
+    // Validar el token
+    const isValidToken = await refreshTokenRecord.validateToken(refresh_token);
+    if (!isValidToken || !refreshTokenRecord.isValid()) {
+      // Revocar token si está comprometido
+      await this.revokeRefreshToken(refreshTokenRecord.id);
+      throw new UnauthorizedException("Token de refresco inválido o expirado");
+    }
 
-    // CORRECTO:
-    const refreshTokenRecord = await this.refreshTokenRepository.findOne({
-      where: {
-        token_hash: refresh_token, // Buscar por el token específico
-        is_revoked: false,
-      },
-      relations: ["user", "user.role", "user.role.permissions", "user.office"],
-    });
+    // Actualizar último uso
+    refreshTokenRecord.last_used_at = new Date();
+    await this.refreshTokenRepository.save(refreshTokenRecord);
 
-    if (!refreshTokenRecord) {
-      throw new UnauthorizedException("Token de refresco inválido");
-    }
+    // Generar nuevos tokens
+    const tokens = await this.generateTokens(refreshTokenRecord.user, deviceInfo);
 
-    // Validar el token
-    const isValidToken = await refreshTokenRecord.validateToken(refresh_token);
-    if (!isValidToken || !refreshTokenRecord.isValid()) {
-      // Revocar token si está comprometido
-      await this.revokeRefreshToken(refreshTokenRecord.id);
-      throw new UnauthorizedException("Token de refresco inválido o expirado");
-    }
+    // Revocar el token anterior
+    await this.revokeRefreshToken(refreshTokenRecord.id);
 
-    // Actualizar último uso
-    refreshTokenRecord.last_used_at = new Date();
-    await this.refreshTokenRepository.save(refreshTokenRecord);
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      expires_in: 86400,
+      token_type: "Bearer",
+    };
+  }
 
-    // Generar nuevos tokens
-    const tokens = await this.generateTokens(refreshTokenRecord.user, deviceInfo);
+  /**
+   * Cambiar contraseña del usuario
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    const { current_password, new_password } = changePasswordDto;
 
-    // Revocar el token anterior
-    await this.revokeRefreshToken(refreshTokenRecord.id);
+    const user = await this.userRepository.findOne({
+      where: { id: Number(userId) },
+    });
 
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-      expires_in: 86400,
-      token_type: "Bearer",
-    };
-  }
+    if (!user) {
+      throw new NotFoundException("Usuario no encontrado");
+    }
 
-  /**
-   * Cambiar contraseña del usuario
-   */
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
-    const { current_password, new_password } = changePasswordDto;
+    // Verificar contraseña actual
+    const isCurrentPasswordValid = await user.validatePassword(current_password);
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException("Contraseña actual incorrecta");
+    }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
+    // Actualizar contraseña
+    user.password = new_password; // Se hashea automáticamente en el entity
+    await this.userRepository.save(user);
 
-    if (!user) {
-      throw new NotFoundException("Usuario no encontrado");
-    }
+    // Revocar todos los refresh tokens del usuario
+    await this.revokeAllUserTokens(Number(userId));
 
-    // Verificar contraseña actual
-    const isCurrentPasswordValid = await user.validatePassword(current_password);
-    if (!isCurrentPasswordValid) {
-      throw new BadRequestException("Contraseña actual incorrecta");
-    }
+    return {
+      message: "Contraseña actualizada exitosamente",
+    };
+  }
 
-    // Actualizar contraseña
-    user.password_hash = new_password; // Se hashea automáticamente en el entity
-    await this.userRepository.save(user);
+  /**
+   * Cerrar sesión (revocar tokens)
+   */
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.revokeAllUserTokens(Number(userId));
+    return {
+      message: "Sesión cerrada exitosamente",
+    };
+  }
 
-    // Revocar todos los refresh tokens del usuario
-    await this.revokeAllUserTokens(userId);
+  /**
+   * Obtener perfil del usuario autenticado
+   */
+  async getProfile(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: Number(userId) },
+      relations: ["role", "role.permissions", "offices"],
+    });
 
-    return {
-      message: "Contraseña actualizada exitosamente",
-    };
-  }
+    if (!user) {
+      throw new NotFoundException("Usuario no encontrado");
+    }
 
-  /**
-   * Cerrar sesión (revocar tokens)
-   */
-  async logout(userId: string): Promise<{ message: string }> {
-    await this.revokeAllUserTokens(userId);
-    return {
-      message: "Sesión cerrada exitosamente",
-    };
-  }
+    return user.toPublic();
+  }
 
-  /**
-   * Obtener perfil del usuario autenticado
-   */
-  async getProfile(userId: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ["role", "role.permissions", "office"],
-    });
+  /**
+   * Validar usuario por JWT payload
+   */
+  async validateUser(payload: JwtPayload): Promise<User | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: Number(payload.sub), is_active: true },
+      relations: ["role", "role.permissions", "offices"],
+    });
 
-    if (!user) {
-      throw new NotFoundException("Usuario no encontrado");
-    }
+    return user || null;
+  }
 
-    return user.toPublic();
-  }
+  // Métodos privados de utilidad
+  private async generateTokens(user: User, deviceInfo?: DeviceInfo): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload: JwtPayload = {
+      sub: user.id.toString(),
+      email: user.email,
+      role: user.role.nombre, // Usar 'nombre'
+      office_id: user.office_id,
+      permissions: user.role.permissions?.map((p) => p.name) || [],
+    };
 
-  /**
-   * Validar usuario por JWT payload
-   */
-  async validateUser(payload: JwtPayload): Promise<User | null> {
-    const user = await this.userRepository.findOne({
-      where: { id: payload.sub, is_active: true },
-      relations: ["role", "role.permissions", "office"],
-    });
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.jwtConfiguration.expiresIn,
+    });
 
-    return user || null;
-  }
+    // Generar refresh token único
+    const refreshTokenValue = uuidv4();
+    const refreshTokenExpiry = new Date();
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 días
 
-  // Métodos privados de utilidad
-  private async generateTokens(user: User, deviceInfo?: DeviceInfo): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role.name,
-      office_id: user.office_id,
-      permissions: user.role.permissions?.map((p) => p.name) || [],
-    };
+    // Guardar refresh token en la base de datos
+    const refreshToken = this.refreshTokenRepository.create({
+      user_id: user.id,
+      token_hash: refreshTokenValue,
+      expires_at: refreshTokenExpiry,
+      ip_address: deviceInfo?.ip,
+      user_agent: deviceInfo?.userAgent,
+      device_info: deviceInfo?.device,
+    });
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.jwtConfiguration.expiresIn,
-    });
+    await this.refreshTokenRepository.save(refreshToken);
 
-    // Generar refresh token único
-    const refreshTokenValue = uuidv4();
-    const refreshTokenExpiry = new Date();
-    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 días
+    return {
+      accessToken,
+      refreshToken: refreshTokenValue,
+    };
+  }
 
-    // Guardar refresh token en la base de datos
-    const refreshToken = this.refreshTokenRepository.create({
-      user_id: user.id,
-      token_hash: refreshTokenValue,
-      expires_at: refreshTokenExpiry,
-      ip_address: deviceInfo?.ip,
-      user_agent: deviceInfo?.userAgent,
-      device_info: deviceInfo?.device,
-    });
+  private async incrementFailedAttempts(userIdOrEmail: string): Promise<void> {
+    // CORRECCIÓN: La consulta debe manejar id O correo, no ambos a la vez
+    let user: User | null;
+    if (!isNaN(Number(userIdOrEmail))) {
+      user = await this.userRepository.findOne({ where: { id: Number(userIdOrEmail) } });
+    } else {
+      user = await this.userRepository.findOne({ where: { correo: userIdOrEmail } });
+    }
 
-    await this.refreshTokenRepository.save(refreshToken);
+    if (user) {
+      user.failed_login_attempts += 1;
 
-    return {
-      accessToken,
-      refreshToken: refreshTokenValue,
-    };
-  }
+      // Bloquear usuario después de 5 intentos fallidos
+      if (user.failed_login_attempts >= 5) {
+        const lockUntil = new Date();
+        lockUntil.setMinutes(lockUntil.getMinutes() + 15); // 15 minutos
+        user.locked_until = lockUntil;
+      }
 
-  private async incrementFailedAttempts(userIdOrEmail: string): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: [{ id: userIdOrEmail }, { email: userIdOrEmail }],
-    });
+      await this.userRepository.save(user);
+    }
+  }
 
-    if (user) {
-      user.failed_login_attempts += 1;
+  private async resetFailedAttempts(userId: string): Promise<void> {
+    await this.userRepository.update(Number(userId), {
+      failed_login_attempts: 0,
+      locked_until: null,
+    });
+  }
 
-      // Bloquear usuario después de 5 intentos fallidos
-      if (user.failed_login_attempts >= 5) {
-        const lockUntil = new Date();
-        lockUntil.setMinutes(lockUntil.getMinutes() + 15); // 15 minutos
-        user.locked_until = lockUntil;
-      }
+  private async updateLastLogin(userId: string): Promise<void> {
+    await this.userRepository.update(Number(userId), {
+      last_login_at: new Date(),
+    });
+  }
 
-      await this.userRepository.save(user);
-    }
-  }
+  private async revokeRefreshToken(tokenId: string): Promise<void> {
+    await this.refreshTokenRepository.update(tokenId, {
+      is_revoked: true,
+      revoked_at: new Date(),
+    });
+  }
 
-  private async resetFailedAttempts(userId: string): Promise<void> {
-    await this.userRepository.update(userId, {
-      failed_login_attempts: 0,
-      locked_until: undefined,
-    });
-  }
-
-  private async updateLastLogin(userId: string): Promise<void> {
-    await this.userRepository.update(userId, {
-      last_login_at: new Date(),
-    });
-  }
-
-  private async revokeRefreshToken(tokenId: string): Promise<void> {
-    await this.refreshTokenRepository.update(tokenId, {
-      is_revoked: true,
-      revoked_at: new Date(),
-    });
-  }
-
-  private async revokeAllUserTokens(userId: string): Promise<void> {
-    await this.refreshTokenRepository.update(
-      { user_id: userId, is_revoked: false },
-      {
-        is_revoked: true,
-        revoked_at: new Date(),
-      },
-    );
-  }
+  private async revokeAllUserTokens(userId: number): Promise<void> {
+    await this.refreshTokenRepository.update(
+      { user_id: userId, is_revoked: false },
+      {
+        is_revoked: true,
+        revoked_at: new Date(),
+      },
+    );
+  }
 }

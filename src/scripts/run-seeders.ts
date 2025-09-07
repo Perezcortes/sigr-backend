@@ -1,16 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { DataSource } from 'typeorm';
-import { seedInitialData } from '../database/seeders/initial.seeder';
+import { InitialSeeder } from '../database/seeders/initial.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   
-  const dataSource = app.get(DataSource);
-  
   try {
     console.log('Ejecutando seeders...');
-    await seedInitialData(dataSource);
+    
+    const seeder = app.get(InitialSeeder);
+    await seeder.seed();
+    
     console.log('Seeders completados!');
   } catch (error) {
     console.error('Error:', error);

@@ -1,3 +1,4 @@
+// src/roles/entities/role.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,91 +10,50 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
 import { Permission } from '../../permissions/entities/permission.entity';
 
 @Entity('roles')
 export class Role {
-  @ApiProperty({
-    description: 'ID único del rol',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ApiProperty({
-    description: 'Nombre interno del rol',
-    example: 'ADMIN',
-  })
-  @Column({ unique: true, length: 50 })
-  name: string;
+  @Column({ type: 'varchar' })
+  nombre: string;
 
-  @ApiProperty({
-    description: 'Nombre visible del rol',
-    example: 'Administrador',
-  })
-  @Column({ length: 100 })
-  display_name: string;
-
-  @ApiProperty({
-    description: 'Descripción del rol',
-    example: 'Acceso completo al sistema',
-    required: false,
-  })
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  descripcion: string;
 
-  @ApiProperty({
-    description: 'Estado del rol',
-    example: true,
-  })
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   is_active: boolean;
 
-  @ApiProperty({
-    description: 'Indica si es un rol del sistema',
-    example: false,
-  })
-  @Column({ default: false })
-  is_system_role: boolean;
-
-  @ApiProperty({
-    description: 'Fecha de creación',
-  })
   @CreateDateColumn()
   created_at: Date;
 
-  @ApiProperty({
-    description: 'Fecha de última actualización',
-  })
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ApiProperty({
-    description: 'Fecha de eliminación (soft delete)',
-    required: false,
-  })
   @DeleteDateColumn()
-  deleted_at?: Date;
+  deleted_at: Date;
 
   // Relaciones
   @OneToMany(() => User, (user) => user.role)
   users: User[];
 
-  @ManyToMany(() => Permission, (permission) => permission.roles, {
-    cascade: true,
-  })
+  @ManyToMany(() => Permission, (permission) => permission.roles)
   @JoinTable({
-    name: 'role_permissions',
-    joinColumn: {
-      name: 'role_id',
-      referencedColumnName: 'id',
-    },
-    inverseJoinColumn: {
-      name: 'permission_id',
-      referencedColumnName: 'id',
-    },
+    name: 'role_permiso',
+    joinColumn: { name: 'role_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'permiso_id', referencedColumnName: 'id' },
   })
   permissions: Permission[];
+
+  // Getter para compatibilidad con AuthService
+  get name(): string {
+    return this.nombre;
+  }
+
+  get description(): string {
+    return this.descripcion;
+  }
 }
