@@ -14,23 +14,26 @@ import { User } from '../users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Role } from '../roles/entities/role.entity';
 import { Office } from '../offices/entities/office.entity';
+// Nueva entidad del token de recuperación
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 
 import jwtConfig from '../config/jwt.config';
 
 @Module({
-  imports: [
-    ConfigModule.forFeature(jwtConfig),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '24h' },
-      }),
-    }),
-    TypeOrmModule.forFeature([User, RefreshToken, Role, Office]),
-  ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, RolesGuard, PermissionsGuard],
-  exports: [AuthService, JwtModule, PassportModule],
+  imports: [
+    ConfigModule.forFeature(jwtConfig),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET,
+        signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '24h' },
+      }),
+    }),
+    // Nueva entidad aquí para que el repositorio esté disponible
+    TypeOrmModule.forFeature([User, RefreshToken, Role, Office, PasswordResetToken]),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, LocalStrategy, RolesGuard, PermissionsGuard],
+  exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

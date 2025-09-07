@@ -27,6 +27,8 @@ import {
   ChangePasswordDto,
   LoginResponseDto,
   RefreshResponseDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 
 interface AuthenticatedRequest extends Request {
@@ -280,5 +282,56 @@ export class AuthController {
         permissions: req.user.permissions,
       },
     };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Solicitud de recuperación de contraseña',
+    description: 'Envía un token de recuperación a la dirección de correo electrónico del usuario.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Mensaje de confirmación de envío (genérico por seguridad).',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Si tu correo está en nuestro sistema, te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y spam.' },
+        token: { type: 'string', example: 'a1b2c3d4-e5f6-47a8-9b0c-1d2e3f4a5b6c', nullable: true },
+      },
+    },
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string; token?: string }> {
+    const response = await this.authService.forgotPassword(forgotPasswordDto);
+    return response;
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Restablecer contraseña',
+    description: 'Verifica el token de recuperación y actualiza la contraseña del usuario.',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña restablecida exitosamente.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Contraseña restablecida exitosamente.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido o expirado.',
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }
