@@ -1,4 +1,3 @@
-// src/database/seeders/initial.seeder.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +9,7 @@ import { User } from '../../users/entities/user.entity';
 import { Office } from '../../offices/entities/office.entity';
 import { Estate } from '../../offices/entities/estate.entity';
 import { City } from '../../offices/entities/city.entity';
+import { RefreshToken } from '../../auth/entities/refresh-token.entity';
 
 @Injectable()
 export class InitialSeeder {
@@ -26,62 +26,111 @@ export class InitialSeeder {
     private estateRepository: Repository<Estate>,
     @InjectRepository(City)
     private cityRepository: Repository<City>,
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
   async seed() {
-    console.log('🌱 Iniciando seeders...');
+    console.log('Iniciando seeders...');
 
     // Limpiar datos existentes
     await this.cleanDatabase();
 
     // 1. Crear estados
     const estates = await this.seedEstates();
-    console.log('✅ Estados creados');
+    console.log('Estados creados');
 
     // 2. Crear ciudades
     const cities = await this.seedCities();
-    console.log('✅ Ciudades creadas');
+    console.log('Ciudades creadas');
 
     // 3. Crear permisos
     const permissions = await this.seedPermissions();
-    console.log('✅ Permisos creados');
+    console.log('Permisos creados');
 
     // 4. Crear roles con permisos
     const roles = await this.seedRoles(permissions);
-    console.log('✅ Roles creados');
+    console.log('Roles creados');
 
     // 5. Crear usuarios
     const users = await this.seedUsers(roles);
-    console.log('✅ Usuarios creados');
+    console.log('Usuarios creados');
 
     // 6. Crear oficinas
     const offices = await this.seedOffices(cities, estates);
-    console.log('✅ Oficinas creadas');
+    console.log('Oficinas creadas');
 
     // 7. Asignar usuarios a oficinas
     await this.assignUsersToOffices(users, offices);
-    console.log('✅ Usuarios asignados a oficinas');
+    console.log('Usuarios asignados a oficinas');
 
-    console.log('🎉 Seeders completados exitosamente');
+    console.log('Seeders completados exitosamente');
   }
 
   private async cleanDatabase() {
-    // Eliminar en orden inverso debido a las foreign keys
-    await this.userRepository.delete({});
-    await this.officeRepository.delete({});
-    await this.roleRepository.delete({});
-    await this.permissionRepository.delete({});
-    await this.cityRepository.delete({});
-    await this.estateRepository.delete({});
+    // CORRECCIÓN: Usar DELETE en lugar de clear() para evitar problemas de FK
+    // Eliminar en orden correcto respetando las foreign keys
+    
+    console.log('Limpiando base de datos...');
+    
+    // 1. Limpiar tablas de unión many-to-many primero
+    await this.roleRepository.query('DELETE FROM role_permiso');
+    await this.userRepository.query('DELETE FROM office_user');
+    
+    // 2. Limpiar refresh tokens (referencia users)
+    await this.refreshTokenRepository.query('DELETE FROM refresh_tokens');
+    
+    // 3. Limpiar usuarios
+    await this.userRepository.query('DELETE FROM users');
+    
+    // 4. Limpiar roles (referenciado por users)
+    await this.roleRepository.query('DELETE FROM roles');
+    
+    // 5. Limpiar permisos
+    await this.permissionRepository.query('DELETE FROM permisos');
+    
+    // 6. Limpiar oficinas (puede referenciar cities y estates)
+    await this.officeRepository.query('DELETE FROM offices');
+    
+    // 7. Limpiar cities y estates
+    await this.cityRepository.query('DELETE FROM cities');
+    await this.estateRepository.query('DELETE FROM estates');
+    
+    // Reset secuencias para que los IDs empiecen desde 1
+    await this.roleRepository.query('ALTER SEQUENCE roles_id_seq RESTART WITH 1');
+    await this.permissionRepository.query('ALTER SEQUENCE permisos_id_seq RESTART WITH 1');
+    await this.userRepository.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
+    await this.officeRepository.query('ALTER SEQUENCE offices_id_seq RESTART WITH 1');
+    await this.cityRepository.query('ALTER SEQUENCE cities_id_seq RESTART WITH 1');
+    await this.estateRepository.query('ALTER SEQUENCE estates_id_seq RESTART WITH 1');
+    
+    console.log('Base de datos limpia');
   }
 
   private async seedEstates() {
-    const estatesData = [{ nombre: 'Oaxaca' }, { nombre: 'Ciudad de México' }, { nombre: 'Puebla' }, { nombre: 'Guerrero' }, { nombre: 'Veracruz' }];
+    const estatesData = [
+      { nombre: 'Oaxaca' },
+      { nombre: 'Ciudad de México' },
+      { nombre: 'Puebla' },
+      { nombre: 'Guerrero' },
+      { nombre: 'Veracruz' }
+    ];
     return this.estateRepository.save(estatesData);
   }
 
   private async seedCities() {
-    const citiesData = [{ nombre: 'Huajuapan de León' }, { nombre: 'Oaxaca de Juárez' }, { nombre: 'Salina Cruz' }, { nombre: 'Tuxtepec' }, { nombre: 'Ciudad de México' }, { nombre: 'Puebla de Zaragoza' }, { nombre: 'Acapulco' }, { nombre: 'Chilpancingo' }, { nombre: 'Veracruz' }, { nombre: 'Xalapa' }];
+    const citiesData = [
+      { nombre: 'Huajuapan de León' },
+      { nombre: 'Oaxaca de Juárez' },
+      { nombre: 'Salina Cruz' },
+      { nombre: 'Tuxtepec' },
+      { nombre: 'Ciudad de México' },
+      { nombre: 'Puebla de Zaragoza' },
+      { nombre: 'Acapulco' },
+      { nombre: 'Chilpancingo' },
+      { nombre: 'Veracruz' },
+      { nombre: 'Xalapa' }
+    ];
     return this.cityRepository.save(citiesData);
   }
 
@@ -143,7 +192,7 @@ export class InitialSeeder {
         permissions: permissions.filter(p => p.nombre.includes('ver_propiedades')),
       },
     ];
-
+    
     const roles: Role[] = [];
     for (const roleData of rolesData) {
       const role = this.roleRepository.create(roleData);
@@ -170,7 +219,7 @@ export class InitialSeeder {
         telefono: '9511234567',
         whatsapp: '9511234567',
         password: hashedPassword,
-        roleId: adminRole?.id, // Correcto: `roleId` para la clave foránea
+        role_id: adminRole?.id, // usar role_id en lugar de roleId
       },
       {
         nombres: 'Juan Carlos',
@@ -180,7 +229,7 @@ export class InitialSeeder {
         telefono: '9512345678',
         whatsapp: '9512345678',
         password: hashedPassword,
-        roleId: gerenteRole?.id,
+        role_id: gerenteRole?.id,
       },
       {
         nombres: 'María Elena',
@@ -190,7 +239,7 @@ export class InitialSeeder {
         telefono: '9513456789',
         whatsapp: '9513456789',
         password: hashedPassword,
-        roleId: coordinadorRole?.id,
+        role_id: coordinadorRole?.id,
       },
       {
         nombres: 'Roberto',
@@ -200,7 +249,7 @@ export class InitialSeeder {
         telefono: '9514567890',
         whatsapp: '9514567890',
         password: hashedPassword,
-        roleId: agenteRole?.id,
+        role_id: agenteRole?.id,
       },
       {
         nombres: 'Ana Patricia',
@@ -210,10 +259,9 @@ export class InitialSeeder {
         telefono: '9515678901',
         whatsapp: '9515678901',
         password: hashedPassword,
-        roleId: agenteRole?.id,
+        role_id: agenteRole?.id,
       },
     ];
-    // Se guarda el array de datos directamente
     return this.userRepository.save(usersData);
   }
 
@@ -236,8 +284,8 @@ export class InitialSeeder {
         numero_interior: 'Local A',
         colonia: 'Centro',
         delegacion_municipio: 'Heroica Ciudad de Huajuapan de León',
-        cityId: huajuapanCity?.id, // Correcto: `cityId` para la clave foránea
-        estateId: oaxacaEstate?.id, // Correcto: `estateId` para la clave foránea
+        ciudad: huajuapanCity?.id, // usar ciudad en lugar de cityId
+        estate_id: oaxacaEstate?.id, // usar estate_id en lugar de estateId
         codigo_postal: '69000',
         lat: 17.8021,
         lng: -97.7767,
@@ -254,14 +302,13 @@ export class InitialSeeder {
         numero_exterior: '456',
         colonia: 'Centro Histórico',
         delegacion_municipio: 'Oaxaca de Juárez',
-        cityId: oaxacaCity?.id,
-        estateId: oaxacaEstate?.id,
+        ciudad: oaxacaCity?.id,
+        estate_id: oaxacaEstate?.id,
         codigo_postal: '68000',
         lat: 17.0654,
         lng: -96.7236,
       },
     ];
-    // Se guarda el array de datos directamente
     return this.officeRepository.save(officesData);
   }
 
@@ -269,7 +316,7 @@ export class InitialSeeder {
     const huajuapanOffice = offices.find(o => o.nombre === 'Oficina Central Huajuapan');
     const oaxacaOffice = offices.find(o => o.nombre === 'Sucursal Oaxaca Centro');
 
-    // Asignar usuarios a oficinas
+    // Asignar usuarios a oficinas usando la relación many-to-many
     const assignments = [
       { user: users.find(u => u.correo === 'admin@sigr.com'), offices: offices },
       { user: users.find(u => u.correo === 'gerente@sigr.com'), offices: huajuapanOffice ? [huajuapanOffice] : [] },

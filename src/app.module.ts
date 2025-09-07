@@ -22,6 +22,7 @@ import { JwtAuthGuard } from './auth/guards/auth.guards';
 
 // Seeders
 import { InitialSeeder } from './database/seeders/initial.seeder';
+import { RefreshToken } from './auth/entities/refresh-token.entity'; // Importa la entidad
 
 @Module({
   imports: [
@@ -38,6 +39,8 @@ import { InitialSeeder } from './database/seeders/initial.seeder';
       useFactory: (dbConfig) => dbConfig,
     }),
 
+    // Importa las entidades que el seeder necesita
+    TypeOrmModule.forFeature([RefreshToken]),
     // Módulos de funcionalidad
     AuthModule,
     UsersModule,
@@ -51,8 +54,8 @@ import { InitialSeeder } from './database/seeders/initial.seeder';
     InitialSeeder, // Agregar el seeder aquí
     // Aplicar JwtAuthGuard globalmente (opcional)
     // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard,
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,
     // },
   ],
 })

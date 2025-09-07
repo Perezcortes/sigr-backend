@@ -44,7 +44,7 @@ class SeedModule {}
 
 async function runSeeders() {
   try {
-    console.log('🚀 Iniciando aplicación para seeders...');
+    console.log('Iniciando aplicación para seeders...');
     
     const app = await NestFactory.createApplicationContext(SeedModule);
     const seeder = app.get(InitialSeeder);
@@ -52,10 +52,10 @@ async function runSeeders() {
     await seeder.seed();
     
     await app.close();
-    console.log('✅ Seeders ejecutados correctamente');
+    console.log('Seeders ejecutados correctamente');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error ejecutando seeders:', error);
+    console.error('Error ejecutando seeders:', error);
     process.exit(1);
   }
 }
@@ -65,7 +65,7 @@ runSeeders();
 // src/scripts/run-seeders.ts
 import { execSync } from 'child_process';
 
-console.log('🌱 Ejecutando seeders...');
+console.log('Ejecutando seeders...');
 
 try {
   execSync('ts-node -r tsconfig-paths/register src/database/seeders/seed.command.ts', {
