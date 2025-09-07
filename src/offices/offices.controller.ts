@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 import { OfficesService } from './offices.service';
 import { Office } from './entities/office.entity';
-import { CreateOfficeDto, UpdateOfficeDto } from './dto/offices.dto';
+import { CreateOfficeDto, UpdateOfficeDto, FilterOfficeDto } from './dto/offices.dto';
 import { JwtAuthGuard, PermissionsGuard, Permissions } from '../auth/guards/auth.guards';
 
 @ApiTags('offices')
@@ -25,10 +25,14 @@ export class OfficesController {
 
   @Get()
   @Permissions('ver_oficinas')
-  @ApiOperation({ summary: 'Obtener todas las oficinas', description: 'Retorna una lista de todas las oficinas, requiere el permiso "ver_oficinas".' })
+  @ApiOperation({ summary: 'Obtener todas las oficinas con filtros', description: 'Retorna una lista de todas las oficinas, permitiendo filtros por búsqueda general y campos específicos. Requiere el permiso "ver_oficinas".' })
+  @ApiQuery({ name: 'search', required: false, description: 'Búsqueda por nombre, responsable, clave, o correo.' })
+  @ApiQuery({ name: 'cityId', required: false, description: 'Filtro por ID de ciudad.' })
+  @ApiQuery({ name: 'estateId', required: false, description: 'Filtro por ID de estado.' })
+  @ApiQuery({ name: 'estatus_actividad', required: false, description: 'Filtro por estado de actividad (true/false).' })
   @ApiResponse({ status: 200, description: 'Lista de oficinas obtenida exitosamente.', type: [Office] })
-  async findAll(): Promise<Office[]> {
-    return this.officesService.findAll();
+  async findAll(@Query() filters: FilterOfficeDto): Promise<Office[]> {
+    return this.officesService.findAll(filters);
   }
 
   @Get(':id')

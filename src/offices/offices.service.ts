@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeepPartial } from 'typeorm';
+import { Repository, DeepPartial, Brackets } from 'typeorm';
 
 import { Office } from './entities/office.entity';
 import { City } from './entities/city.entity';
 import { Estate } from './entities/estate.entity';
-import { CreateOfficeDto, UpdateOfficeDto } from './dto/offices.dto';
+import { CreateOfficeDto, UpdateOfficeDto, FilterOfficeDto } from './dto/offices.dto';
 
 @Injectable()
 export class OfficesService {
@@ -19,13 +19,44 @@ export class OfficesService {
   ) {}
 
   /**
-   * Obtiene todas las oficinas de la base de datos.
+   * Obtiene todas las oficinas de la base de datos, incluyendo sus relaciones,
+   * y permite filtrar por múltiples criterios.
+   * @param filters Los criterios para filtrar la búsqueda.
    * @returns Un arreglo de objetos de oficina.
    */
-  async findAll(): Promise<Office[]> {
-    return this.officeRepository.find({
-      relations: ['city', 'estate'],
-    });
+  async findAll(filters: FilterOfficeDto): Promise<Office[]> {
+    const queryBuilder = this.officeRepository.createQueryBuilder('office');
+    
+    // Uniones para filtrar por relaciones
+    queryBuilder
+      .leftJoinAndSelect('office.city', 'city')
+      .leftJoinAndSelect('office.estate', 'estate');
+
+    // Filtro de búsqueda general
+    if (filters.search) {
+      queryBuilder.andWhere(new Brackets(qb => {
+        const searchValue = `%${filters.search?.toLowerCase() ?? ''}%`;
+        qb.where('LOWER(office.nombre) LIKE :search', { search: searchValue })
+          .orWhere('LOWER(office.responsable) LIKE :search', { search: searchValue })
+          .orWhere('LOWER(office.clave) LIKE :search', { search: searchValue })
+          .orWhere('LOWER(office.correo) LIKE :search', { search: searchValue })
+          .orWhere('LOWER(city.nombre) LIKE :search', { search: searchValue })
+          .orWhere('LOWER(estate.nombre) LIKE :search', { search: searchValue });
+      }));
+    }
+
+    // Filtros por campos específicos
+    if (filters.cityId) {
+      queryBuilder.andWhere('city.id = :cityId', { cityId: filters.cityId });
+    }
+    if (filters.estateId) {
+      queryBuilder.andWhere('estate.id = :estateId', { estateId: filters.estateId });
+    }
+    if (filters.estatus_actividad !== undefined) {
+      queryBuilder.andWhere('office.estatus_actividad = :estatus_actividad', { estatus_actividad: filters.estatus_actividad });
+    }
+    
+    return queryBuilder.getMany();
   }
 
   /**

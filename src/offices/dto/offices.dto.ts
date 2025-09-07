@@ -9,6 +9,7 @@ import {
   IsLatitude,
   IsLongitude,
 } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class CreateOfficeDto {
   @ApiProperty({ description: 'Nombre de la oficina', example: 'Oficina Central' })
@@ -176,4 +177,47 @@ export class UpdateOfficeDto {
   @IsNumber({}, { message: 'La longitud debe ser un número.' })
   @IsLongitude({ message: 'Debe proporcionar una longitud válida.' })
   lng?: number;
+}
+
+export class FilterOfficeDto {
+  @ApiProperty({
+    description: 'Filtro por nombre, responsable, clave o correo de oficina',
+    example: 'oficina',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiProperty({
+    description: 'Filtrar por ID de ciudad',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  cityId?: number;
+
+  @ApiProperty({
+    description: 'Filtrar por ID de estado',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  estateId?: number;
+
+  @ApiProperty({
+    description: 'Filtrar por estado de actividad (activo/inactivo)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === '1') return true;
+    if (value === 'false' || value === '0') return false;
+    return value;
+  })
+  estatus_actividad?: boolean;
 }
