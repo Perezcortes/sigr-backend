@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, DeepPartial } from 'typeorm';
 
 import { Role } from './entities/role.entity';
 import { Permission } from '../permissions/entities/permission.entity';
+import { HashidsService } from '../auth/hashids.service';
 import { CreateRoleDto, UpdateRoleDto } from './dto/roles.dto';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class RolesService {
     private readonly roleRepository: Repository<Role>,
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
+    private readonly hashidsService: HashidsService,
   ) {}
 
   async findAll(): Promise<Role[]> {
@@ -35,7 +37,7 @@ export class RolesService {
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
     const { permissions, ...roleData } = createRoleDto;
 
-    const role = this.roleRepository.create(roleData);
+    const role = this.roleRepository.create(roleData as DeepPartial<Role>);
 
     if (permissions && permissions.length > 0) {
       const foundPermissions = await this.permissionRepository.findBy({ id: In(permissions) });
