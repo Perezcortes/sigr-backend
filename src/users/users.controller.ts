@@ -1,17 +1,21 @@
-import { Controller, Get, Param, UseGuards, Post, Body, HttpCode, HttpStatus, Patch, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Post, Body, HttpCode, HttpStatus, Patch, Delete, Query, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard, PermissionsGuard, Permissions } from '../auth/guards/auth.guards';
 import { CreateUserDto, UpdateUserDto, FilterUserDto } from './dto/users.dto';
+import { HashidsService } from '../auth/hashids.service';
 
 @ApiTags('users')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly hashidsService: HashidsService,
+  ) {}
 
   @Get()
   @UseGuards(PermissionsGuard)
@@ -30,7 +34,12 @@ export class UsersController {
     type: [User],
   })
   async findAll(@Query() filters: FilterUserDto): Promise<User[]> {
-    return this.usersService.findAll(filters);
+    const users = await this.usersService.findAll(filters);
+    // Codificar los IDs de los usuarios antes de devolverlos
+    return users.map(user => {
+      const userWithEncodedId = { ...user, id: this.hashidsService.encode(user.id) };
+      return userWithEncodedId as any;
+    });
   }
 
   @Get(':id')
@@ -42,9 +51,9 @@ export class UsersController {
   })
   @ApiParam({
     name: 'id',
-    description: 'ID único del usuario a buscar',
+    description: 'ID único del usuario a buscar (hash)',
     type: 'string',
-    example: '1',
+    example: 'hg234234jkh',
   })
   @ApiResponse({
     status: 200,
@@ -56,7 +65,13 @@ export class UsersController {
     description: 'Usuario no encontrado.',
   })
   async findOne(@Param('id') id: string): Promise<User> {
-    return this.usersService.findOne(Number(id));
+    const userId = this.hashidsService.decode(id);
+    if (userId === null) {
+      throw new NotFoundException('ID de usuario inválido.');
+    }
+    const user = await this.usersService.findOne(Number(userId));
+    const userWithEncodedId = { ...user, id: this.hashidsService.encode(user.id) };
+    return userWithEncodedId as any;
   }
 
   @Post()
@@ -74,7 +89,9 @@ export class UsersController {
     type: User,
   })
   async create(@Body() createUserData: CreateUserDto): Promise<User> {
-    return this.usersService.create(createUserData);
+    const user = await this.usersService.create(createUserData);
+    const userWithEncodedId = { ...user, id: this.hashidsService.encode(user.id) };
+    return userWithEncodedId as any;
   }
 
   @Patch(':id')
@@ -86,9 +103,9 @@ export class UsersController {
   })
   @ApiParam({
     name: 'id',
-    description: 'ID único del usuario a actualizar',
+    description: 'ID único del usuario a actualizar (hash)',
     type: 'string',
-    example: '1',
+    example: 'hg234234jkh',
   })
   @ApiBody({ type: UpdateUserDto })
   @ApiResponse({
@@ -101,7 +118,13 @@ export class UsersController {
     description: 'Usuario no encontrado.',
   })
   async update(@Param('id') id: string, @Body() updateUserData: UpdateUserDto): Promise<User> {
-    return this.usersService.update(Number(id), updateUserData);
+    const userId = this.hashidsService.decode(id);
+    if (userId === null) {
+      throw new NotFoundException('ID de usuario inválido.');
+    }
+    const user = await this.usersService.update(Number(userId), updateUserData);
+    const userWithEncodedId = { ...user, id: this.hashidsService.encode(user.id) };
+    return userWithEncodedId as any;
   }
 
   @Delete(':id')
@@ -114,9 +137,9 @@ export class UsersController {
   })
   @ApiParam({
     name: 'id',
-    description: 'ID único del usuario a eliminar',
+    description: 'ID único del usuario a eliminar (hash)',
     type: 'string',
-    example: '1',
+    example: 'hg234234jkh',
   })
   @ApiResponse({
     status: 204,
@@ -127,6 +150,10 @@ export class UsersController {
     description: 'Usuario no encontrado.',
   })
   async remove(@Param('id') id: string): Promise<void> {
-    await this.usersService.remove(Number(id));
+    const userId = this.hashidsService.decode(id);
+    if (userId === null) {
+      throw new NotFoundException('ID de usuario inválido.');
+    }
+    await this.usersService.remove(Number(userId));
   }
 }

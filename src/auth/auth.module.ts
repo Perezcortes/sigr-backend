@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -14,11 +14,11 @@ import { User } from '../users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Role } from '../roles/entities/role.entity';
 import { Office } from '../offices/entities/office.entity';
-// Nueva entidad del token de recuperación
 import { PasswordResetToken } from './entities/password-reset-token.entity';
-
 import jwtConfig from '../config/jwt.config';
+import { HashidsService } from './hashids.service';
 
+@Global()
 @Module({
   imports: [
     ConfigModule.forFeature(jwtConfig),
@@ -29,11 +29,10 @@ import jwtConfig from '../config/jwt.config';
         signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '24h' },
       }),
     }),
-    // Nueva entidad aquí para que el repositorio esté disponible
     TypeOrmModule.forFeature([User, RefreshToken, Role, Office, PasswordResetToken]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, RolesGuard, PermissionsGuard],
-  exports: [AuthService, JwtModule, PassportModule],
+  providers: [AuthService, JwtStrategy, LocalStrategy, RolesGuard, PermissionsGuard, HashidsService],
+  exports: [AuthService, JwtModule, PassportModule, HashidsService],
 })
 export class AuthModule {}
