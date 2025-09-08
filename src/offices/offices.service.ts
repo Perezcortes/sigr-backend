@@ -6,6 +6,7 @@ import { Office } from './entities/office.entity';
 import { City } from './entities/city.entity';
 import { Estate } from './entities/estate.entity';
 import { CreateOfficeDto, UpdateOfficeDto, FilterOfficeDto } from './dto/offices.dto';
+import { HashidsService } from '../auth/hashids.service';
 
 @Injectable()
 export class OfficesService {
@@ -16,6 +17,7 @@ export class OfficesService {
     private readonly cityRepository: Repository<City>,
     @InjectRepository(Estate)
     private readonly estateRepository: Repository<Estate>,
+    private readonly hashidsService: HashidsService,
   ) {}
 
   /**
