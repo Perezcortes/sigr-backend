@@ -80,19 +80,22 @@ export class InitialSeeder {
     // 2. Limpiar refresh tokens (referencia users)
     await this.refreshTokenRepository.query('DELETE FROM refresh_tokens');
     
-    // 3. Limpiar usuarios
+    // 3. Limpiar password_reset_tokens (referencia users)
+    await this.userRepository.query('DELETE FROM password_reset_tokens');
+    
+    // 4. Limpiar usuarios
     await this.userRepository.query('DELETE FROM users');
     
-    // 4. Limpiar roles (referenciado por users)
+    // 5. Limpiar roles (referenciado por users)
     await this.roleRepository.query('DELETE FROM roles');
     
-    // 5. Limpiar permisos
+    // 6. Limpiar permisos
     await this.permissionRepository.query('DELETE FROM permisos');
     
-    // 6. Limpiar oficinas (puede referenciar cities y estates)
+    // 7. Limpiar oficinas (puede referenciar cities y estates)
     await this.officeRepository.query('DELETE FROM offices');
     
-    // 7. Limpiar cities y estates
+    // 8. Limpiar cities y estates
     await this.cityRepository.query('DELETE FROM cities');
     await this.estateRepository.query('DELETE FROM estates');
     
@@ -155,51 +158,65 @@ export class InitialSeeder {
       { nombre: 'exportar_datos', descripcion: 'Exportar datos del sistema' },
       { nombre: 'configuracion_sistema', descripcion: 'Acceder a configuración del sistema' },
       { nombre: 'ver_todas_oficinas', descripcion: 'Ver información de todas las oficinas' },
+      // Agrega aquí los permisos que faltan
+      { nombre: 'ver_permisos', descripcion: 'Ver el listado de permisos' },
+      { nombre: 'gestionar_permisos', descripcion: 'Crear, editar y eliminar permisos' },
     ];
     return this.permissionRepository.save(permissionsData);
   }
 
   private async seedRoles(permissions: Permission[]) {
+    // 1. Guardar primero los roles sin las relaciones
     const rolesData = [
-      {
-        nombre: 'administrador',
-        descripcion: 'Administrador del sistema con acceso completo',
-        permissions: permissions,
-      },
-      {
-        nombre: 'gerente',
-        descripcion: 'Gerente con acceso a gestión de oficinas y reportes',
-        permissions: permissions.filter(p => !p.nombre.includes('eliminar_usuarios') && !p.nombre.includes('configuracion_sistema')),
-      },
-      {
-        nombre: 'coordinador',
-        descripcion: 'Coordinador de oficina con permisos de gestión local',
-        permissions: permissions.filter(p => p.nombre.includes('ver_') || p.nombre.includes('editar_propiedades') || p.nombre.includes('crear_propiedades') || p.nombre.includes('gestionar_leads')),
-      },
-      {
-        nombre: 'agente',
-        descripcion: 'Agente inmobiliario con permisos básicos',
-        permissions: permissions.filter(p => p.nombre.includes('ver_propiedades') || p.nombre.includes('ver_leads') || p.nombre.includes('gestionar_leads') || p.nombre.includes('crear_propiedades')),
-      },
-      {
-        nombre: 'propietario',
-        descripcion: 'Propietario de inmuebles',
-        permissions: permissions.filter(p => p.nombre.includes('ver_propiedades') || p.nombre.includes('editar_propiedades')),
-      },
-      {
-        nombre: 'inquilino',
-        descripcion: 'Inquilino con acceso limitado',
-        permissions: permissions.filter(p => p.nombre.includes('ver_propiedades')),
-      },
+      { nombre: 'administrador', descripcion: 'Administrador del sistema con acceso completo' },
+      { nombre: 'gerente', descripcion: 'Gerente con acceso a gestión de oficinas y reportes' },
+      { nombre: 'coordinador', descripcion: 'Coordinador de oficina con permisos de gestión local' },
+      { nombre: 'agente', descripcion: 'Agente inmobiliario con permisos básicos' },
+      { nombre: 'propietario', descripcion: 'Propietario de inmuebles' },
+      { nombre: 'inquilino', descripcion: 'Inquilino con acceso limitado' },
     ];
-    
-    const roles: Role[] = [];
-    for (const roleData of rolesData) {
-      const role = this.roleRepository.create(roleData);
-      const savedRole = await this.roleRepository.save(role);
-      roles.push(savedRole);
+
+    const savedRoles = await this.roleRepository.save(rolesData);
+
+    const administradorRole = savedRoles.find(r => r.nombre === 'administrador');
+    const gerenteRole = savedRoles.find(r => r.nombre === 'gerente');
+    const coordinadorRole = savedRoles.find(r => r.nombre === 'coordinador');
+    const agenteRole = savedRoles.find(r => r.nombre === 'agente');
+    const propietarioRole = savedRoles.find(r => r.nombre === 'propietario');
+    const inquilinoRole = savedRoles.find(r => r.nombre === 'inquilino');
+
+    // 2. Asignar permisos explícitamente a cada rol
+    if (administradorRole) {
+      administradorRole.permissions = permissions;
+      await this.roleRepository.save(administradorRole);
     }
-    return roles;
+    
+    if (gerenteRole) {
+      gerenteRole.permissions = permissions.filter(p => !p.nombre.includes('eliminar_usuarios') && !p.nombre.includes('configuracion_sistema'));
+      await this.roleRepository.save(gerenteRole);
+    }
+
+    if (coordinadorRole) {
+      coordinadorRole.permissions = permissions.filter(p => p.nombre.includes('ver_') || p.nombre.includes('editar_propiedades') || p.nombre.includes('crear_propiedades') || p.nombre.includes('gestionar_leads'));
+      await this.roleRepository.save(coordinadorRole);
+    }
+
+    if (agenteRole) {
+      agenteRole.permissions = permissions.filter(p => p.nombre.includes('ver_propiedades') || p.nombre.includes('ver_leads') || p.nombre.includes('gestionar_leads') || p.nombre.includes('crear_propiedades'));
+      await this.roleRepository.save(agenteRole);
+    }
+    
+    if (propietarioRole) {
+      propietarioRole.permissions = permissions.filter(p => p.nombre.includes('ver_propiedades') || p.nombre.includes('editar_propiedades'));
+      await this.roleRepository.save(propietarioRole);
+    }
+
+    if (inquilinoRole) {
+      inquilinoRole.permissions = permissions.filter(p => p.nombre.includes('ver_propiedades'));
+      await this.roleRepository.save(inquilinoRole);
+    }
+
+    return savedRoles;
   }
 
   private async seedUsers(roles: Role[]) {
@@ -208,7 +225,7 @@ export class InitialSeeder {
     const coordinadorRole = roles.find(r => r.nombre === 'coordinador');
     const agenteRole = roles.find(r => r.nombre === 'agente');
 
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const hashedPassword = await bcrypt.hash('NewPassword123!', 10);
 
     const usersData = [
       {
