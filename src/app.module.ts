@@ -25,6 +25,7 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { OfficesModule } from './offices/offices.module';
+import { PostalCodesModule } from './postal-codes/postal-codes.module';
 
 // Guards globales
 import { JwtAuthGuard } from './auth/guards/auth.guards';
@@ -64,6 +65,7 @@ import { InitialSeeder } from './database/seeders/initial.seeder';
     RolesModule,
     PermissionsModule,
     OfficesModule,
+    PostalCodesModule,
   ],
   controllers: [AppController],
   providers: [
