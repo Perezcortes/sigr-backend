@@ -13,7 +13,9 @@ async function bootstrap() {
     .addTag('app', 'Endpoints generales de la aplicación')
     .addTag('users', 'Operaciones relacionadas con usuarios')
     .addTag('offices', 'Operaciones relacionadas con oficinas')
-    .addTag('auth', 'Operaciones de autenticación')
+    .addTag('auth', 'Operaciones relacionadas con autenticación')
+    .addTag('roles', 'Operaciones relacionadas con roles')
+    .addTag('permissions', 'Operaciones relacionadas con permisos')
     .addBearerAuth() // Para JWT cuando se implementes
     .addServer('http://localhost:3000', 'Desarrollo')
     .build();
