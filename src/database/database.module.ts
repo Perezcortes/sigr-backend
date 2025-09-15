@@ -16,26 +16,26 @@ import { Property } from '../rentals/entities/property.entity';
 import { Formalization } from '../rentals/entities/formalization.entity';
 import { Activation } from '../rentals/entities/activation.entity';
 
+const typeOrmFeature = TypeOrmModule.forFeature([
+  Role,
+  Permission,
+  User,
+  Office,
+  Estate,
+  City,
+  RefreshToken,
+  Rental,
+  Tenant,
+  Owner,
+  Guarantor,
+  Property,
+  Formalization,
+  Activation,
+]);
+
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Role,
-      Permission,
-      User,
-      Office,
-      Estate,
-      City,
-      RefreshToken,
-      Rental,
-      Tenant,
-      Owner,
-      Guarantor,
-      Property,
-      Formalization,
-      Activation,
-    ]),
-  ],
+  imports: [typeOrmFeature],
   providers: [InitialSeeder],
-  exports: [InitialSeeder],
+  exports: [InitialSeeder, typeOrmFeature], // Exporta también el TypeOrmModule
 })
 export class DatabaseModule {}
