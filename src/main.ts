@@ -17,6 +17,7 @@ async function bootstrap() {
     .addTag('roles', 'Operaciones relacionadas con roles')
     .addTag('permissions', 'Operaciones relacionadas con permisos')
     .addTag('postal-codes', 'Operaciones relacionadas con códigos postales')
+    .addTag('locations', 'Operaciones relacionadas con obtención de nombres de estados y ciudades')
     .addBearerAuth() // Para JWT cuando se implementes
     .addServer('http://localhost:3000', 'Desarrollo')
     .build();
