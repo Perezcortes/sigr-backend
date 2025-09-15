@@ -39,40 +39,55 @@ export class RentalsService {
     if (!user) {
       throw new BadRequestException('El usuario que crea la renta no es válido.');
     }
-    
-    // 1. Crear y guardar el inquilino
-    const newTenant = this.tenantRepository.create(inquilino);
-    const savedTenant = await this.tenantRepository.save(newTenant);
 
-    // 2. Crear y guardar el propietario
-    const newOwner = this.ownerRepository.create(propietario);
-    const savedOwner = await this.ownerRepository.save(newOwner);
+    // Usamos transacciones para asegurar la atomicidad de la operación
+    return this.rentalRepository.manager.transaction(async transactionalEntityManager => {
+      // 1. Crear y guardar el inquilino
+      const newTenant = this.tenantRepository.create(inquilino);
+      const savedTenant = await transactionalEntityManager.save(newTenant);
 
-    // 3. Crear y guardar la propiedad
-    const newProperty = this.propertyRepository.create({
-      ...propiedad,
-      propietario: savedOwner,
+      // 2. Crear y guardar el propietario
+      const newOwner = this.ownerRepository.create(propietario);
+      const savedOwner = await transactionalEntityManager.save(newOwner);
+
+      // 3. Crear y guardar la propiedad
+      const newProperty = this.propertyRepository.create({
+        ...propiedad,
+        propietario: savedOwner,
+      });
+      const savedProperty = await transactionalEntityManager.save(newProperty);
+
+      // 4. Crear y guardar el obligado solidario si existe
+      let savedGuarantor: Guarantor | null = null;
+      if (obligado_solidario) {
+        const newGuarantor = this.guarantorRepository.create(obligado_solidario);
+        savedGuarantor = await transactionalEntityManager.save(newGuarantor);
+      }
+
+      // 5. Crear la entidad de renta principal con los IDs correctos
+      const newRental = this.rentalRepository.create({
+        status: 'apartada',
+        tipo_origen: rentalData.tipo_origen,
+        creado_por_user_id: user.id,
+        inquilino_id: savedTenant.id,
+        propietario_id: savedOwner.id,
+        propiedad_id: savedProperty.id,
+        obligado_solidario_id: savedGuarantor?.id,
+      });
+
+      return transactionalEntityManager.save(newRental);
     });
-    const savedProperty = await this.propertyRepository.save(newProperty);
+  }
 
-    // 4. Crear y guardar el obligado solidario si existe
-    let savedGuarantor: Guarantor | null = null;
-    if (obligado_solidario) {
-      const newGuarantor = this.guarantorRepository.create(obligado_solidario);
-      savedGuarantor = await this.guarantorRepository.save(newGuarantor);
-    }
+  // ---
 
-    // 5. Crear la entidad de renta principal con los IDs correctos
-    const newRental = this.rentalRepository.create({
-      status: 'apartada', // El estado inicial para una renta creada manualmente
-      tipo_origen: rentalData.tipo_origen,
-      creado_por_user_id: user.id,
-      inquilino_id: savedTenant.id,
-      propietario_id: savedOwner.id,
-      propiedad_id: savedProperty.id,
-      obligado_solidario_id: savedGuarantor ? savedGuarantor.id : undefined,
+  /**
+   * Obtiene todas las rentas con sus relaciones.
+   * @returns Una lista de entidades de renta.
+   */
+  async findAllRentals(): Promise<Rental[]> {
+    return this.rentalRepository.find({
+      relations: ['inquilino', 'propietario', 'propiedad', 'obligado_solidario', 'creado_por'],
     });
-
-    return this.rentalRepository.save(newRental);
   }
 }

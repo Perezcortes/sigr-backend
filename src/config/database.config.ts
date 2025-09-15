@@ -1,7 +1,8 @@
+// src/config/database.config.ts
+
 import { registerAs } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
-// Remover la propiedad timezone ya que no es válida para PostgreSQL en TypeORM:
 export default registerAs(
   'database',
   (): TypeOrmModuleOptions => ({
@@ -16,9 +17,10 @@ export default registerAs(
     synchronize: process.env.NODE_ENV === 'development',
     logging: process.env.NODE_ENV === 'development',
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    // Remover timezone: 'Z',
     extra: {
       charset: 'utf8mb4_unicode_ci',
     },
+    // Añadí esta línea solo para desarrollo
+    //dropSchema: process.env.NODE_ENV === 'development'
   }),
 );
