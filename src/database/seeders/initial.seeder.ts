@@ -54,7 +54,7 @@ export class InitialSeeder {
     console.log('Iniciando seeders...');
 
     // Limpiar datos existentes
-    await this.cleanDatabase();
+    //await this.cleanDatabase(); a dormir un rato
 
     // 1. Crear estados
     const estates = await this.seedEstates();
