@@ -87,7 +87,7 @@ export class RentalsService {
    */
   async findAllRentals(): Promise<Rental[]> {
     return this.rentalRepository.find({
-      relations: ['inquilino', 'propietario', 'propiedad', 'obligado_solidario', 'creado_por'],
+      relations: ['inquilino', 'propietario', 'propiedad', 'obligado_solidario', 'creado_por_user'],
     });
   }
 }
