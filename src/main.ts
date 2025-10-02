@@ -1,9 +1,18 @@
+// src/main.ts
+
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Habilitar CORS de manera segura
+  app.enableCors({
+    origin: 'http://localhost:3001', // Solo permite peticiones desde tu frontend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Permite los métodos que usa la API 
+    credentials: true, // Importante para que las cookies, headers de autorización, etc. se envíen
+  });
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -19,7 +28,7 @@ async function bootstrap() {
     .addTag('postal-codes', 'Operaciones relacionadas con códigos postales')
     .addTag('locations', 'Operaciones relacionadas con obtención de nombres de estados y ciudades')
     .addTag('rentals', 'Operaciones relacionadas con rentas')
-    .addBearerAuth() // Para JWT cuando se implementes
+    .addBearerAuth()
     .addServer('http://localhost:3000', 'Desarrollo')
     .build();
 
