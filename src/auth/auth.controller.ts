@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Request,
@@ -29,6 +30,7 @@ import {
   RefreshResponseDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  UpdateProfileDto,
 } from './dto/auth.dto';
 
 interface AuthenticatedRequest extends Request {
@@ -240,6 +242,44 @@ export class AuthController {
   })
   async getProfile(@Request() req: AuthenticatedRequest) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Actualizar perfil del usuario',
+    description: 'Actualizar campos editables (nombre, email) del usuario autenticado.',
+  })
+  @ApiBearerAuth()
+  @ApiBody({ type: UpdateProfileDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        email: { type: 'string' },
+        name: { type: 'string' },
+        role: { type: 'string' },
+        oficina: { type: 'string' },
+        permissions: { type: 'array', items: { type: 'string' } },
+        isActive: { type: 'boolean' },
+        created_at: { type: 'string', format: 'date-time' },
+        last_login_at: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Error de validación o email ya en uso.',
+  })
+  async updateProfile(
+    @Request() req: AuthenticatedRequest,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    // Llama al servicio para actualizar el perfil
+    return this.authService.updateProfile(req.user.userId, updateProfileDto);
   }
 
   @Get('verify-token')
