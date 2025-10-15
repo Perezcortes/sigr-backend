@@ -742,7 +742,7 @@ export class InitialSeeder {
   private async seedProperties(estates: Estate[], cities: City[], owners: Owner[]) {
     const oaxacaCity = cities.find((c) => c.nombre === "Oaxaca de Juárez");
     const oaxacaEstate = estates.find((e) => e.nombre === "Oaxaca");
-    const carlosOwner = owners.find((o) => o.tipo_persona === "fisica");
+    const carlosOwner = owners.find((o) => o.tipo_persona === "PF");
 
     const propertiesData = [
       {
@@ -785,7 +785,7 @@ export class InitialSeeder {
   private async seedRentals(users: User[], tenants: Tenant[], owners: Owner[], properties: Property[], guarantors: Guarantor[]) {
     const agente = users.find((u) => u.correo === "agente1@sigr.com");
     const tenant1 = tenants.find((t) => t.tipo_persona === "PF");
-    const owner1 = owners.find((o) => o.tipo_persona === "fisica");
+    const owner1 = owners.find((o) => o.tipo_persona === "PF");
     const property1 = properties[0]; // Tomamos el primer elemento, ya que solo estamos creando uno
     const guarantor1 = guarantors.find((g) => g.tipo_persona === "PF");
 
