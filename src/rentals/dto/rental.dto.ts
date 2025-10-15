@@ -17,37 +17,26 @@ import { CreateGuarantorDto } from './create-guarantor.dto'; //Datos del obligad
 
 export class CreateRentalDto {
   @ApiProperty({ description: 'Tipo de origen de la renta', example: 'manual' })
-  @IsString()
-  @IsNotEmpty()
+  @IsString() @IsNotEmpty()
   tipo_origen: string;
 
   @ApiProperty({ description: 'ID del usuario que crea la renta', example: 1 })
-  @IsNumber()
-  @IsNotEmpty()
+  @IsNumber() @IsNotEmpty()
   creado_por_user_id: number;
 
   @ApiProperty({ description: 'Datos del inquilino', type: CreateTenantDto })
-  @IsObject()
-  @ValidateNested()
-  @Type(() => CreateTenantDto)
+  @IsObject() @ValidateNested() @Type(() => CreateTenantDto)
   inquilino: CreateTenantDto;
 
   @ApiProperty({ description: 'Datos del propietario', type: CreateOwnerDto })
-  @IsObject()
-  @ValidateNested()
-  @Type(() => CreateOwnerDto)
+  @IsObject() @ValidateNested() @Type(() => CreateOwnerDto)
   propietario: CreateOwnerDto;
 
-  @ApiProperty({ description: 'Datos de la propiedad (solo si se crea manualmente)', type: CreatePropertyDto })
-  @IsObject()
-  @ValidateNested()
-  @Type(() => CreatePropertyDto)
+  @ApiProperty({ description: 'Datos de la propiedad', type: CreatePropertyDto })
+  @IsObject() @ValidateNested() @Type(() => CreatePropertyDto)
   propiedad: CreatePropertyDto;
 
   @ApiProperty({ description: 'Datos del obligado solidario (opcional)', required: false, type: CreateGuarantorDto })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => CreateGuarantorDto) // Uso del DTO correcto
+  @IsOptional() @IsObject() @ValidateNested() @Type(() => CreateGuarantorDto)
   obligado_solidario?: CreateGuarantorDto;
 }

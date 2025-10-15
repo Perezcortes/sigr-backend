@@ -49,9 +49,9 @@ export class Rental {
   @JoinColumn({ name: "propietario_id" })
   propietario: Owner;
 
-  @OneToOne(() => Guarantor)
-  @JoinColumn({ name: "obligado_solidario_id" })
-  obligado_solidario: Guarantor;
+@OneToOne(() => Guarantor, { nullable: true })
+@JoinColumn({ name: 'obligado_solidario_id' })
+obligado_solidario?: Guarantor;
 
   @OneToOne(() => Property)
   @JoinColumn({ name: "propiedad_id" })
