@@ -5,7 +5,7 @@ import { Owner } from "./owner.entity";
 import { Guarantor } from "./guarantor.entity";
 import { Property } from "./property.entity";
 
-@Entity("rentas")
+@Entity("rental")
 export class Rental {
   @PrimaryGeneratedColumn()
   id: number;

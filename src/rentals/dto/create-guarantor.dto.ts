@@ -1,606 +1,226 @@
 // src/rentals/dto/create-guarantor.dto.ts
+
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsEmail,
-  IsNotEmpty,
   IsOptional,
   IsEnum,
   IsDateString,
   IsNumber,
   IsBoolean,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
+// Enum para el tipo de persona, reutilizado del DTO del inquilino
 export enum TipoPersona {
   FISICA = 'PF',
   MORAL = 'PM',
 }
 
+// Clase para datos compartidos del Fiador (Domicilio y Contacto principal)
+export class DatosContactoFiadorDto {
+  @ApiPropertyOptional({ description: 'Correo electrónico del fiador', example: 'lauloi.100@gmail.com' })
+  @IsOptional() @IsEmail() email?: string;
+
+  @ApiPropertyOptional({ description: 'Teléfono celular principal', example: '8877393939' })
+  @IsOptional() @IsString() tel_cel?: string;
+
+  @ApiPropertyOptional({ description: 'Teléfono fijo (o celular si no tiene fijo)', example: '8877393939' })
+  @IsOptional() @IsString() tel_fijo?: string;
+}
+
+// Clase para datos de Empleo e Ingresos de Persona Física del Fiador
+export class EmpleoIngresosFiadorPfDto {
+  @ApiPropertyOptional({ description: 'Empresa donde trabaja', example: 'Restaurante equiz' })
+  @IsOptional() @IsString() empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Profesión, oficio o puesto', example: 'direccion general' })
+  @IsOptional() @IsString() profesion?: string;
+
+  @ApiPropertyOptional({ description: 'Ingreso mensual', example: 30000 })
+  @IsOptional() @IsNumber() ingreso_mensual?: number;
+
+  @ApiPropertyOptional({ description: 'Fecha de ingreso al empleo (YYYY-MM-DD)', example: '2020-10-10' })
+  @IsOptional() @IsDateString() fecha_ingreso?: string;
+
+  @ApiPropertyOptional({ description: 'Tipo de empleo', example: 'Dueño de negocio' })
+  @IsOptional() @IsString() tipo_empleo?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Calle', example: 'Calle de la empresa' })
+  @IsOptional() @IsString() calle_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Número exterior', example: '100' })
+  @IsOptional() @IsString() num_ext_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Número interior', example: 'SN' })
+  @IsOptional() @IsString() num_int_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Código postal', example: '68000' })
+  @IsOptional() @IsString() cp_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Colonia', example: 'La Noria' })
+  @IsOptional() @IsString() col_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Delegación/Municipio', example: 'Oaxaca de Juarez' })
+  @IsOptional() @IsString() del_mun_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Ubicación de la empresa - Estado', example: 'Oaxaca' })
+  @IsOptional() @IsString() edo_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Teléfono de la empresa', example: '8877393939' })
+  @IsOptional() @IsString() tel_empresa?: string;
+
+  @ApiPropertyOptional({ description: 'Número de extensión', example: '101' })
+  @IsOptional() @IsString() ext_empresa?: string;
+}
+
+// Clase para datos de Propiedad en Garantía (opcional)
+export class PropiedadGarantiaDto {
+  @ApiPropertyOptional({ description: 'Calle de la propiedad en garantía', example: 'Calle en garantía' })
+  @IsOptional() @IsString() calle?: string;
+  @ApiPropertyOptional({ description: 'Número exterior', example: '200' })
+  @IsOptional() @IsString() num_ext?: string;
+  @ApiPropertyOptional({ description: 'Número interior', example: 'SN' })
+  @IsOptional() @IsString() num_int?: string;
+  @ApiPropertyOptional({ description: 'Código postal', example: '68000' })
+  @IsOptional() @IsString() cp?: string;
+  @ApiPropertyOptional({ description: 'Colonia', example: 'Colonia de la propiedad' })
+  @IsOptional() @IsString() colonia?: string;
+  @ApiPropertyOptional({ description: 'Delegación/Municipio', example: 'Oaxaca de Juárez' })
+  @IsOptional() @IsString() del_mun?: string;
+  @ApiPropertyOptional({ description: 'Estado', example: 'Oaxaca' })
+  @IsOptional() @IsString() estado?: string;
+
+  @ApiPropertyOptional({ description: 'Número de escritura', example: '1234' })
+  @IsOptional() @IsString() num_escritura?: string;
+  @ApiPropertyOptional({ description: 'Nombre del notario', example: 'Notario Prueba' })
+  @IsOptional() @IsString() notario_nombre?: string;
+  @ApiPropertyOptional({ description: 'Apellido paterno del notario', example: 'Pérez' })
+  @IsOptional() @IsString() notario_apellido_p?: string;
+  @ApiPropertyOptional({ description: 'Apellido materno del notario', example: 'López' })
+  @IsOptional() @IsString() notario_apellido_m?: string;
+  @ApiPropertyOptional({ description: 'Número de notaría', example: 50 })
+  @IsOptional() @IsNumber() num_notaria?: number;
+  @ApiPropertyOptional({ description: 'Fecha de la escritura (YYYY-MM-DD)', example: '2015-05-20' })
+  @IsOptional() @IsDateString() fecha_escritura?: string;
+  @ApiPropertyOptional({ description: 'Lugar de la notaría', example: 'Oaxaca de Juárez' })
+  @IsOptional() @IsString() lugar_notaria?: string;
+
+  @ApiPropertyOptional({ description: 'Registro Público de la Propiedad', example: 'Boleta 1234' })
+  @IsOptional() @IsString() reg_pub_propiedad?: string;
+  @ApiPropertyOptional({ description: 'No. de Boleta Predial', example: '98765' })
+  @IsOptional() @IsString() no_boleta_predial?: string;
+  @ApiPropertyOptional({ description: 'Folio real electrónico', example: 'A-123456' })
+  @IsOptional() @IsString() folio_real_elec?: string;
+  @ApiPropertyOptional({ description: 'Fecha del folio (YYYY-MM-DD)', example: '2015-05-20' })
+  @IsOptional() @IsDateString() fecha_folio?: string;
+}
+
+// Clase para la información del Representante Legal (Fiador Persona Moral)
+export class RepresentanteLegalDto {
+  @ApiPropertyOptional({ description: 'Nombre del representante legal', example: 'Juan' })
+  @IsOptional() @IsString() nombre?: string;
+  @ApiPropertyOptional({ description: 'Apellido paterno', example: 'Pérez' })
+  @IsOptional() @IsString() apellido_p?: string;
+  @ApiPropertyOptional({ description: 'Apellido materno', example: 'López' })
+  @IsOptional() @IsString() apellido_m?: string;
+  @ApiPropertyOptional({ description: 'Sexo', example: 'Masculino' })
+  @IsOptional() @IsString() sexo?: string;
+  @ApiPropertyOptional({ description: 'RFC', example: 'PELE800101XYZ' })
+  @IsOptional() @IsString() rfc?: string;
+  @ApiPropertyOptional({ description: 'CURP', example: 'PELZ800101HMNCRN01' })
+  @IsOptional() @IsString() curp?: string;
+  @ApiPropertyOptional({ description: 'Correo electrónico', example: 'juan.perez@empresa.com' })
+  @IsOptional() @IsEmail() email?: string;
+  @ApiPropertyOptional({ description: 'Teléfono', example: '9511112233' })
+  @IsOptional() @IsString() telefono?: string;
+  @ApiPropertyOptional({ description: 'Calle del domicilio', example: 'Calle del Sol' })
+  @IsOptional() @IsString() calle_dom?: string;
+  @ApiPropertyOptional({ description: 'Número exterior del domicilio', example: '10' })
+  @IsOptional() @IsString() num_ext_dom?: string;
+  @ApiPropertyOptional({ description: 'Número interior del domicilio', example: 'A' })
+  @IsOptional() @IsString() num_int_dom?: string;
+  @ApiPropertyOptional({ description: 'Código postal del domicilio', example: '68000' })
+  @IsOptional() @IsString() cp_dom?: string;
+  @ApiPropertyOptional({ description: 'Colonia del domicilio', example: 'Centro' })
+  @IsOptional() @IsString() col_dom?: string;
+  @ApiPropertyOptional({ description: 'Delegación/Municipio del domicilio', example: 'Oaxaca de Juárez' })
+  @IsOptional() @IsString() del_mun_dom?: string;
+  @ApiPropertyOptional({ description: 'Estado del domicilio', example: 'Oaxaca' })
+  @IsOptional() @IsString() edo_dom?: string;
+
+  @ApiPropertyOptional({ description: '¿Sus facultades constan en el acta constitutiva?', example: false })
+  @IsOptional() @IsBoolean() facultades_en_acta?: boolean;
+  @ApiPropertyOptional({ description: 'Escritura pública o acta número', example: '6666' })
+  @IsOptional() @IsString() escritura_num?: string;
+  @ApiPropertyOptional({ description: 'Número de notario', example: 20 })
+  @IsOptional() @IsNumber() notario_num?: number;
+  @ApiPropertyOptional({ description: 'Fecha de escritura o acta (YYYY-MM-DD)', example: '2016-03-10' })
+  @IsOptional() @IsDateString() fecha_escritura?: string;
+  @ApiPropertyOptional({ description: 'Número de inscripción en el registro público', example: 'B-654321' })
+  @IsOptional() @IsString() reg_num?: string;
+  @ApiPropertyOptional({ description: 'Ciudad de registro', example: 'Oaxaca de Juárez' })
+  @IsOptional() @IsString() ciudad_reg?: string;
+  @ApiPropertyOptional({ description: 'Estado de registro', example: 'Oaxaca' })
+  @IsOptional() @IsString() edo_reg?: string;
+  @ApiPropertyOptional({ description: 'Fecha de inscripción (YYYY-MM-DD)', example: '2016-03-10' })
+  @IsOptional() @IsDateString() fecha_inscripcion?: string;
+  @ApiPropertyOptional({ description: 'Tipo de representación', example: 'Administrador único' })
+  @IsOptional() @IsString() tipo_representacion?: string;
+  @ApiPropertyOptional({ description: 'Llenar en caso de otro tipo de representación', example: 'Gerente' })
+  @IsOptional() @IsString() otro_tipo_representacion?: string;
+}
+
+// DTO Principal para el Fiador
 export class CreateGuarantorDto {
   @ApiProperty({
-    description: 'Tipo de persona del obligado solidario',
+    description: 'Tipo de persona del fiador',
     enum: TipoPersona,
     example: TipoPersona.FISICA,
   })
-  @IsEnum(TipoPersona, { message: 'El tipo de persona debe ser "PF" (Persona Física) o "PM" (Persona Moral).' })
+  @IsEnum(TipoPersona, { message: 'El tipo de persona debe ser "PF" o "PM".' })
   tipo_persona: TipoPersona;
 
-  // --- Persona Física (PF)
-  // Información personal
-  @ApiPropertyOptional({ description: 'Nombres del obligado solidario', example: 'Laura' })
-  @IsOptional()
-  @IsString()
-  pf_nombres?: string;
+  // Datos comunes a ambos tipos
+  @ApiPropertyOptional({ description: 'Relación con el solicitante', example: 'Conocido' })
+  @IsOptional() @IsString() relacion_solicitante?: string;
+  @ApiPropertyOptional({ description: 'Tiempo de conocer al solicitante', example: '10 años' })
+  @IsOptional() @IsString() tiempo_conociendolo?: string;
+  @ApiPropertyOptional({ description: 'Nombre(s) del fiador', example: 'Juan' })
+  @IsOptional() @IsString() nombre?: string;
+  @ApiPropertyOptional({ description: 'Apellido paterno', example: 'Pérez' })
+  @IsOptional() @IsString() apellido_p?: string;
+  @ApiPropertyOptional({ description: 'Apellido materno', example: 'Prueba' })
+  @IsOptional() @IsString() apellido_m?: string;
+  @ApiPropertyOptional({ description: 'RFC', example: 'ABCD123456EFG' })
+  @IsOptional() @IsString() rfc?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Calle', example: 'Crespo' })
+  @IsOptional() @IsString() dom_calle?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Número exterior', example: '100' })
+  @IsOptional() @IsString() dom_num_ext?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Número interior', example: '5.1.' })
+  @IsOptional() @IsString() dom_num_int?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Código postal', example: '68000' })
+  @IsOptional() @IsString() dom_cp?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Colonia', example: 'Centro' })
+  @IsOptional() @IsString() dom_colonia?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Delegación/Municipio', example: 'Oaxaca de Juárez' })
+  @IsOptional() @IsString() dom_del_mun?: string;
+  @ApiPropertyOptional({ description: 'Domicilio actual - Estado', example: 'Oaxaca' })
+  @IsOptional() @IsString() dom_estado?: string;
 
-  @ApiPropertyOptional({ description: 'Apellido paterno del obligado solidario', example: 'Lois' })
-  @IsOptional()
-  @IsString()
-  pf_apellido_p?: string;
+  // Clases anidadas
+  @ApiPropertyOptional({ description: 'Datos específicos para fiadores de persona física' })
+  @IsOptional() @ValidateNested() @Type(() => EmpleoIngresosFiadorPfDto)
+  pf_datos_empleo?: EmpleoIngresosFiadorPfDto;
 
-  @ApiPropertyOptional({ description: 'Apellido materno del obligado solidario', example: 'Amador' })
-  @IsOptional()
-  @IsString()
-  pf_apellido_m?: string;
-  
-  @ApiPropertyOptional({ description: 'Nacionalidad de la persona física', example: 'Mexicana' })
-  @IsOptional()
-  @IsString()
-  pf_nacionalidad?: string;
+  @ApiPropertyOptional({ description: 'Datos específicos para fiadores de persona moral' })
+  @IsOptional() @ValidateNested() @Type(() => RepresentanteLegalDto)
+  pm_representante_legal?: RepresentanteLegalDto;
 
-  @ApiPropertyOptional({ description: 'Sexo de la persona física', example: 'Femenino' })
-  @IsOptional()
-  @IsString()
-  pf_sexo?: string;
-
-  @ApiPropertyOptional({ description: 'Estado civil de la persona física', example: 'Casada' })
-  @IsOptional()
-  @IsString()
-  pf_edo_civil?: string;
-  
-  @ApiPropertyOptional({ description: 'Fecha de nacimiento de la persona física (YYYY-MM-DD)', example: '1985-11-20' })
-  @IsOptional()
-  @IsDateString()
-  pf_fecha_nac?: string;
-  
-  @ApiPropertyOptional({ description: 'Tipo de identificación (INE, Pasaporte, etc.)', example: 'INE' })
-  @IsOptional()
-  @IsString()
-  pf_id_tipo?: string;
-
-  @ApiPropertyOptional({ description: 'CURP de la persona física', example: 'LOAM851120HABC' })
-  @IsOptional()
-  @IsString()
-  pf_curp?: string;
-
-  @ApiPropertyOptional({ description: 'RFC de la persona física', example: 'LOAM851120123' })
-  @IsOptional()
-  @IsString()
-  pf_rfc?: string;
-
-  @ApiPropertyOptional({ description: 'Correo electrónico de la persona física', example: 'laura.lois@mail.com' })
-  @IsOptional()
-  @IsEmail()
-  pf_email?: string;
-  
-  @ApiPropertyOptional({ description: 'Teléfono celular', example: '9516667788' })
-  @IsOptional()
-  @IsString()
-  pf_tel_cel?: string;
-
-  @ApiPropertyOptional({ description: 'Teléfono fijo', example: '9516667799' })
-  @IsOptional()
-  @IsString()
-  pf_tel_fijo?: string;
-  
-  @ApiPropertyOptional({ description: 'Relación con el inquilino', example: 'Amiga' })
-  @IsOptional()
-  @IsString()
-  pf_relacion_inquilino?: string;
-  
-  @ApiPropertyOptional({ description: 'Tiempo de conocer al inquilino', example: '10 años' })
-  @IsOptional()
-  @IsString()
-  pf_tiempo_conocerlo?: string;
-
-  // Domicilio actual PF
-  @ApiPropertyOptional({ description: 'Calle del domicilio actual', example: 'Calle de la Luna' })
-  @IsOptional()
-  @IsString()
-  pf_dom_calle?: string;
-  
-  @ApiPropertyOptional({ description: 'Número exterior del domicilio actual', example: '35' })
-  @IsOptional()
-  @IsString()
-  pf_dom_num_ext?: string;
-
-  @ApiPropertyOptional({ description: 'Número interior del domicilio actual', example: 'SN' })
-  @IsOptional()
-  @IsString()
-  pf_dom_num_int?: string;
-  
-  @ApiPropertyOptional({ description: 'Código postal del domicilio actual', example: '68000' })
-  @IsOptional()
-  @IsString()
-  pf_dom_cp?: string;
-  
-  @ApiPropertyOptional({ description: 'Colonia del domicilio actual', example: 'Centro' })
-  @IsOptional()
-  @IsString()
-  pf_dom_colonia?: string;
-  
-  @ApiPropertyOptional({ description: 'Delegación/Municipio del domicilio actual', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pf_dom_municipio?: string;
-
-  @ApiPropertyOptional({ description: 'Estado del domicilio actual', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pf_dom_estado?: string;
-  
-  // Empleo e Ingresos PF
-  @ApiPropertyOptional({ description: 'Nombre de la empresa', example: 'Constructora XYZ' })
-  @IsOptional()
-  @IsString()
-  pf_nom_empresa?: string;
-  
-  @ApiPropertyOptional({ description: 'Fecha de ingreso al empleo (YYYY-MM-DD)', example: '2010-03-01' })
-  @IsOptional()
-  @IsDateString()
-  pf_fecha_ing_empleo?: string;
-  
-  @ApiPropertyOptional({ description: 'Profesión u oficio', example: 'Arquitecta' })
-  @IsOptional()
-  @IsString()
-  pf_profesion?: string;
-  
-  @ApiPropertyOptional({ description: 'Tipo de empleo', example: 'Empleado' })
-  @IsOptional()
-  @IsString()
-  pf_tipo_empleo?: string;
-  
-  @ApiPropertyOptional({ description: 'Ingreso mensual', example: 35000.0 })
-  @IsOptional()
-  @IsNumber()
-  pf_ing_mensual?: number;
-  
-  // Ubicación de la empresa PF
-  @ApiPropertyOptional({ description: 'Calle de la empresa', example: 'Av. Central' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_calle?: string;
-  
-  @ApiPropertyOptional({ description: 'Número exterior de la empresa', example: '456' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_num_ext?: string;
-
-  @ApiPropertyOptional({ description: 'Número interior de la empresa', example: '1A' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_num_int?: string;
-  
-  @ApiPropertyOptional({ description: 'Código postal de la empresa', example: '68000' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_cp?: string;
-  
-  @ApiPropertyOptional({ description: 'Colonia de la empresa', example: 'Reforma' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_colonia?: string;
-
-  @ApiPropertyOptional({ description: 'Delegación/Municipio de la empresa', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_municipio?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado de la empresa', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_estado?: string;
-  
-  @ApiPropertyOptional({ description: 'Teléfono de la empresa', example: '9513334455' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_tel?: string;
-  
-  @ApiPropertyOptional({ description: 'Extensión telefónica de la empresa', example: '101' })
-  @IsOptional()
-  @IsString()
-  pf_empresa_ext?: string;
-
-  // Propiedad en garantía PF (si aplica)
-  @ApiPropertyOptional({ description: 'Calle de la propiedad en garantía', example: 'Calle de los Pinos' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_calle?: string;
-  
-  @ApiPropertyOptional({ description: 'Número exterior de la propiedad en garantía', example: '10' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_num_ext?: string;
-  
-  @ApiPropertyOptional({ description: 'Número interior de la propiedad en garantía', example: 'SN' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_num_int?: string;
-  
-  @ApiPropertyOptional({ description: 'Código postal de la propiedad en garantía', example: '68010' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_cp?: string;
-  
-  @ApiPropertyOptional({ description: 'Colonia de la propiedad en garantía', example: 'Reforma' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_colonia?: string;
-  
-  @ApiPropertyOptional({ description: 'Delegación/Municipio de la propiedad en garantía', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_municipio?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado de la propiedad en garantía', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pf_prop_garantia_estado?: string;
-  
-  @ApiPropertyOptional({ description: 'Número de escritura de la propiedad en garantía', example: '8976' })
-  @IsOptional()
-  @IsString()
-  pf_escritura_num?: string;
-  
-  @ApiPropertyOptional({ description: 'Fecha de escritura (YYYY-MM-DD)', example: '2015-05-20' })
-  @IsOptional()
-  @IsDateString()
-  pf_fecha_escritura?: string;
-  
-  @ApiPropertyOptional({ description: 'Nombre del notario', example: 'Juan' })
-  @IsOptional()
-  @IsString()
-  pf_notario_nombre?: string;
-  
-  @ApiPropertyOptional({ description: 'Apellido paterno del notario', example: 'García' })
-  @IsOptional()
-  @IsString()
-  pf_notario_apellido_p?: string;
-  
-  @ApiPropertyOptional({ description: 'Apellido materno del notario', example: 'Sosa' })
-  @IsOptional()
-  @IsString()
-  pf_notario_apellido_m?: string;
-  
-  @ApiPropertyOptional({ description: 'Número de notaría', example: 15 })
-  @IsOptional()
-  @IsNumber()
-  pf_notaria_num?: number;
-  
-  @ApiPropertyOptional({ description: 'Lugar de la notaría', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pf_notaria_lugar?: string;
-  
-  @ApiPropertyOptional({ description: 'Registro Público de la Propiedad', example: 'Libro 2, Sección B' })
-  @IsOptional()
-  @IsString()
-  pf_reg_pub_prop?: string;
-  
-  @ApiPropertyOptional({ description: 'Folio real electrónico', example: '01-12345' })
-  @IsOptional()
-  @IsString()
-  pf_folio_real_elec?: string;
-  
-  @ApiPropertyOptional({ description: 'Fecha de registro de propiedad (YYYY-MM-DD)', example: '2015-06-01' })
-  @IsOptional()
-  @IsDateString()
-  pf_fecha_reg_prop?: string;
-  
-  @ApiPropertyOptional({ description: 'Número de boleta predial', example: '12345678' })
-  @IsOptional()
-  @IsString()
-  pf_boleta_predial_num?: string;
-  
-  // --- Persona Moral (PM)
-  // Información de la empresa
-  @ApiPropertyOptional({ description: 'Razón social de la empresa', example: 'Servicios Legales y Contables del Sur S.C.' })
-  @IsOptional()
-  @IsString()
-  pm_razon_social?: string;
-
-  @ApiPropertyOptional({ description: 'RFC de la persona moral', example: 'SLCS050505ABC' })
-  @IsOptional()
-  @IsString()
-  pm_rfc?: string;
-
-  @ApiPropertyOptional({ description: 'Correo electrónico de la persona moral', example: 'contacto@slcs.com' })
-  @IsOptional()
-  @IsEmail()
-  pm_email?: string;
-
-  @ApiPropertyOptional({ description: 'Teléfono de la empresa', example: '9519998877' })
-  @IsOptional()
-  @IsString()
-  pm_tel?: string;
-  
-  @ApiPropertyOptional({ description: 'Antigüedad de la empresa', example: '10 años' })
-  @IsOptional()
-  @IsString()
-  pm_antiguedad_empresa?: string;
-
-  @ApiPropertyOptional({ description: 'Ingreso mensual aproximado', example: 200000.0 })
-  @IsOptional()
-  @IsNumber()
-  pm_ing_mensual?: number;
-  
-  @ApiPropertyOptional({ description: 'Actividades de la empresa', example: 'Servicios de consultoría legal y contable' })
-  @IsOptional()
-  @IsString()
-  pm_actividades_empresa?: string;
-
-  // Domicilio de la empresa PM
-  @ApiPropertyOptional({ description: 'Calle del domicilio de la empresa', example: 'Calle Las Rosas' })
-  @IsOptional()
-  @IsString()
-  pm_dom_calle?: string;
-  
-  @ApiPropertyOptional({ description: 'Número exterior del domicilio de la empresa', example: '200' })
-  @IsOptional()
-  @IsString()
-  pm_dom_num_ext?: string;
-
-  @ApiPropertyOptional({ description: 'Número interior del domicilio de la empresa', example: 'SN' })
-  @IsOptional()
-  @IsString()
-  pm_dom_num_int?: string;
-  
-  @ApiPropertyOptional({ description: 'Código postal del domicilio de la empresa', example: '68050' })
-  @IsOptional()
-  @IsString()
-  pm_dom_cp?: string;
-  
-  @ApiPropertyOptional({ description: 'Colonia del domicilio de la empresa', example: 'Jardines del Valle' })
-  @IsOptional()
-  @IsString()
-  pm_dom_colonia?: string;
-
-  @ApiPropertyOptional({ description: 'Municipio del domicilio de la empresa', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pm_dom_municipio?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado del domicilio de la empresa', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pm_dom_estado?: string;
-
-  // Acta constitutiva PM
-  @ApiPropertyOptional({ description: 'Nombre del notario del acta constitutiva', example: 'Ana' })
-  @IsOptional()
-  @IsString()
-  pm_notario_nombre?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido paterno del notario', example: 'Ramírez' })
-  @IsOptional()
-  @IsString()
-  pm_notario_apellido_p?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido materno del notario', example: 'Ruiz' })
-  @IsOptional()
-  @IsString()
-  pm_notario_apellido_m?: string;
-
-  @ApiPropertyOptional({ description: 'Número de escritura del acta constitutiva', example: '1122' })
-  @IsOptional()
-  @IsString()
-  pm_escritura_num?: string;
-
-  @ApiPropertyOptional({ description: 'Fecha de constitución (YYYY-MM-DD)', example: '2005-05-05' })
-  @IsOptional()
-  @IsDateString()
-  pm_fecha_const?: string;
-
-  @ApiPropertyOptional({ description: 'Número de notario', example: 5 })
-  @IsOptional()
-  @IsNumber()
-  pm_notario_num?: number;
-
-  @ApiPropertyOptional({ description: 'Ciudad de registro del acta constitutiva', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pm_ciudad_reg?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado de registro del acta constitutiva', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pm_estado_reg?: string;
-  
-  @ApiPropertyOptional({ description: 'Número de registro de la persona moral', example: 'M-987654' })
-  @IsOptional()
-  @IsString()
-  pm_reg_num?: string;
-  
-  @ApiPropertyOptional({ description: 'Giro comercial de la empresa', example: 'Servicios profesionales' })
-  @IsOptional()
-  @IsString()
-  pm_giro_comercial?: string;
-
-  // Representante Legal PM
-  @ApiPropertyOptional({ description: 'Nombre del representante legal', example: 'José' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_nombre?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido paterno del representante legal', example: 'Vázquez' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_apellido_p?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido materno del representante legal', example: 'Mora' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_apellido_m?: string;
-
-  @ApiPropertyOptional({ description: 'Sexo del representante legal', example: 'Masculino' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_sexo?: string;
-  
-  @ApiPropertyOptional({ description: 'RFC del representante legal', example: 'VAMJ750101ABC' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_rfc?: string;
-
-  @ApiPropertyOptional({ description: 'CURP del representante legal', example: 'VAMJ750101HOCRN02' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_curp?: string;
-
-  @ApiPropertyOptional({ description: 'Correo electrónico del representante legal', example: 'jose.v@slcs.com' })
-  @IsOptional()
-  @IsEmail()
-  pm_apoderado_email?: string;
-  
-  @ApiPropertyOptional({ description: 'Teléfono del representante legal', example: '9519998877' })
-  @IsOptional()
-  @IsString()
-  pm_apoderado_tel?: string;
-
-  // Domicilio del Representante Legal PM
-  @ApiPropertyOptional({ description: 'Calle del domicilio del representante legal', example: 'Calle de los Robles' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_calle?: string;
-  
-  @ApiPropertyOptional({ description: 'Número exterior del domicilio del representante legal', example: '15' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_num_ext?: string;
-  
-  @ApiPropertyOptional({ description: 'Número interior del domicilio del representante legal', example: 'B' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_num_int?: string;
-  
-  @ApiPropertyOptional({ description: 'Código postal del domicilio del representante legal', example: '68000' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_cp?: string;
-
-  @ApiPropertyOptional({ description: 'Colonia del domicilio del representante legal', example: 'Centro' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_colonia?: string;
-  
-  @ApiPropertyOptional({ description: 'Municipio del domicilio del representante legal', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_municipio?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado del domicilio del representante legal', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pm_dom_rep_estado?: string;
-
-  // Facultades del Apoderado PM
-  @ApiPropertyOptional({ description: 'Indica si las facultades constan en el acta constitutiva', example: true })
-  @IsOptional()
-  @IsBoolean()
-  pm_apoderado_facultades?: boolean;
-  
-  @ApiPropertyOptional({ description: 'Número de escritura del apoderado', example: '3344' })
-  @IsOptional()
-  @IsString()
-  pm_apo_escritura_num?: string;
-
-  @ApiPropertyOptional({ description: 'Número de notario del apoderado', example: 2 })
-  @IsOptional()
-  @IsNumber()
-  pm_apo_notario_num?: number;
-
-  @ApiPropertyOptional({ description: 'Fecha de la escritura o acta del apoderado (YYYY-MM-DD)', example: '2006-01-20' })
-  @IsOptional()
-  @IsDateString()
-  pm_apo_fecha_escritura?: string;
-
-  @ApiPropertyOptional({ description: 'Número de inscripción en el registro público del apoderado', example: 'C-112233' })
-  @IsOptional()
-  @IsString()
-  pm_apo_reg_num?: string;
-
-  @ApiPropertyOptional({ description: 'Fecha de inscripción (YYYY-MM-DD)', example: '2006-02-05' })
-  @IsOptional()
-  @IsDateString()
-  pm_apo_fecha_reg?: string;
-  
-  @ApiPropertyOptional({ description: 'Ciudad de registro del apoderado', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pm_apo_ciudad_reg?: string;
-  
-  @ApiPropertyOptional({ description: 'Estado de registro del apoderado', example: 'Oaxaca' })
-  @IsOptional()
-  @IsString()
-  pm_apo_estado_reg?: string;
-  
-  @ApiPropertyOptional({ description: 'Tipo de representación', example: 'Administrador único' })
-  @IsOptional()
-  @IsString()
-  pm_apo_tipo_rep?: string;
-
-  // Propiedad en garantía PM (campos corregidos)
-  @ApiPropertyOptional({ description: 'Número de escritura de la propiedad en garantía de la persona moral', example: '4567' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_escritura_num?: string;
-
-  @ApiPropertyOptional({ description: 'Fecha de escritura (YYYY-MM-DD) de la propiedad en garantía de la persona moral', example: '2018-07-15' })
-  @IsOptional()
-  @IsDateString()
-  pm_prop_garantia_fecha_escritura?: string;
-
-  @ApiPropertyOptional({ description: 'Nombre del notario de la propiedad en garantía de la persona moral', example: 'Carmen' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_notario_nombre?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido paterno del notario de la propiedad en garantía de la persona moral', example: 'Gómez' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_notario_apellido_p?: string;
-
-  @ApiPropertyOptional({ description: 'Apellido materno del notario de la propiedad en garantía de la persona moral', example: 'Núñez' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_notario_apellido_m?: string;
-
-  @ApiPropertyOptional({ description: 'Número de notaría de la propiedad en garantía de la persona moral', example: 30 })
-  @IsOptional()
-  @IsNumber()
-  pm_prop_garantia_notaria_num?: number;
-  
-  @ApiPropertyOptional({ description: 'Lugar de la notaría de la propiedad en garantía de la persona moral', example: 'Oaxaca de Juárez' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_notaria_lugar?: string;
-  
-  @ApiPropertyOptional({ description: 'Registro Público de la Propiedad de la propiedad en garantía de la persona moral', example: 'Libro 5, Sección D' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_reg_pub_prop?: string;
-  
-  @ApiPropertyOptional({ description: 'Folio real electrónico de la propiedad en garantía de la persona moral', example: '02-98765' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_folio_real_elec?: string;
-
-  @ApiPropertyOptional({ description: 'Fecha de registro de la propiedad en garantía de la persona moral (YYYY-MM-DD)', example: '2018-08-01' })
-  @IsOptional()
-  @IsDateString()
-  pm_prop_garantia_fecha_reg_prop?: string;
-
-  @ApiPropertyOptional({ description: 'Número de boleta predial de la propiedad en garantía de la persona moral', example: '98765432' })
-  @IsOptional()
-  @IsString()
-  pm_prop_garantia_boleta_predial_num?: string;
+  @ApiPropertyOptional({ description: 'Datos de la propiedad en garantía', type: () => PropiedadGarantiaDto })
+  @IsOptional() @ValidateNested() @Type(() => PropiedadGarantiaDto)
+  propiedad_garantia?: PropiedadGarantiaDto;
 }
