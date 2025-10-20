@@ -13,6 +13,10 @@ import {
   Propiedad 
 } from './entities';
 import { PostalCodesModule } from '../postal-codes/postal-codes.module';
+import { InquilinoService } from './services/inquilino.service';
+import { PropietarioService } from './services/propietario.service';
+import { PropiedadService } from './services/propiedad.service';
+import { ObligadoSolidarioService } from './services/obligado-solidario.service';
 
 @Module({
   imports: [
@@ -26,10 +30,16 @@ import { PostalCodesModule } from '../postal-codes/postal-codes.module';
       PropietarioPm,
       Propiedad,
     ]),
-    PostalCodesModule, 
+    PostalCodesModule,
   ],
   controllers: [RentalsController],
-  providers: [RentalsService],
+  providers: [
+    RentalsService,
+    InquilinoService,
+    PropietarioService,
+    PropiedadService,
+    ObligadoSolidarioService,
+  ],
   exports: [RentalsService],
 })
 export class RentalsModule {}
