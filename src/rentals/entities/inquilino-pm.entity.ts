@@ -8,7 +8,7 @@ export class InquilinoPm {
   @ApiProperty({ description: 'ID único del inquilino' })
   id: string;
 
-  @OneToOne(() => Rental)
+  @OneToOne(() => Rental, rental => rental.inquilinoPm)
   @JoinColumn({ name: 'renta_id' })
   renta: Rental;
 

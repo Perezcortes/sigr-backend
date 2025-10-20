@@ -1,5 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+
+import { InquilinoPf } from './inquilino-pf.entity';
+import { InquilinoPm } from './inquilino-pm.entity';
+import { ObligadoSolidarioPf } from './obligado-solidario-pf.entity';
+import { ObligadoSolidarioPm } from './obligado-solidario-pm.entity';
+import { PropietarioPf } from './propietario-pf.entity';
+import { PropietarioPm } from './propietario-pm.entity';
+import { Propiedad } from './propiedad.entity';
 
 @Entity('rentas')
 export class Rental {
@@ -42,4 +50,26 @@ export class Rental {
   @UpdateDateColumn({ name: 'fecha_actualizacion' })
   @ApiProperty({ description: 'Fecha de última actualización' })
   fechaActualizacion: Date;
+
+  // Relaciones
+  @OneToOne(() => InquilinoPf, inquilinoPf => inquilinoPf.renta)
+  inquilinoPf?: InquilinoPf;
+
+  @OneToOne(() => InquilinoPm, inquilinoPm => inquilinoPm.renta)
+  inquilinoPm?: InquilinoPm;
+
+  @OneToOne(() => Propiedad, propiedad => propiedad.renta)
+  propiedad?: Propiedad;
+
+  @OneToOne(() => PropietarioPf, propietarioPf => propietarioPf.renta)
+  propietarioPf?: PropietarioPf;
+
+  @OneToOne(() => PropietarioPm, propietarioPm => propietarioPm.renta)
+  propietarioPm?: PropietarioPm;
+
+  @OneToOne(() => ObligadoSolidarioPf, obligadoPf => obligadoPf.renta)
+  obligadoPf?: ObligadoSolidarioPf;
+
+  @OneToOne(() => ObligadoSolidarioPm, obligadoPm => obligadoPm.renta)
+  obligadoPm?: ObligadoSolidarioPm;
 }

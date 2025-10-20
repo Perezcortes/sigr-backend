@@ -26,7 +26,7 @@ import { PostalCodesModule } from '../postal-codes/postal-codes.module';
       PropietarioPm,
       Propiedad,
     ]),
-    PostalCodesModule, // Agregar esta línea
+    PostalCodesModule, 
   ],
   controllers: [RentalsController],
   providers: [RentalsService],
