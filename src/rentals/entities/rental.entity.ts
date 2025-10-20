@@ -1,63 +1,75 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, OneToOne } from "typeorm";
-import { User } from "../../users/entities/user.entity";
-import { Tenant } from "./tenant.entity";
-import { Owner } from "./owner.entity";
-import { Guarantor } from "./guarantor.entity";
-import { Property } from "./property.entity";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany, JoinColumn } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
-@Entity("rental")
+import { InquilinoPf } from './inquilino-pf.entity';
+import { InquilinoPm } from './inquilino-pm.entity';
+import { ObligadoSolidarioPf } from './obligado-solidario-pf.entity';
+import { ObligadoSolidarioPm } from './obligado-solidario-pm.entity';
+import { PropietarioPf } from './propietario-pf.entity';
+import { PropietarioPm } from './propietario-pm.entity';
+import { Propiedad } from './propiedad.entity';
+
+@Entity('rentas')
 export class Rental {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  @ApiProperty({ description: 'ID único de la renta' })
+  id: string;
 
-  @Column()
-  status: string;
+  @Column({ type: 'enum', enum: ['fisica', 'moral'], name: 'tipo_inquilino' })
+  @ApiProperty({ enum: ['fisica', 'moral'], description: 'Tipo de persona del inquilino' })
+  tipoInquilino: string;
 
-  @Column({ name: "tipo_origen" })
-  tipo_origen: string;
+  @Column({ type: 'enum', enum: ['fisica', 'moral'], name: 'tipo_obligado' })
+  @ApiProperty({ enum: ['fisica', 'moral'], description: 'Tipo de persona del obligado solidario' })
+  tipoObligado: string;
 
-  @Column({ name: "inquilino_id" })
-  inquilino_id: number;
+  @Column({ type: 'enum', enum: ['fisica', 'moral'], name: 'tipo_propietario' })
+  @ApiProperty({ enum: ['fisica', 'moral'], description: 'Tipo de persona del propietario' })
+  tipoPropietario: string;
 
-  @Column({ name: "propietario_id" })
-  propietario_id: number;
+  @Column({ type: 'varchar', length: 50, name: 'tipo_propiedad' })
+  @ApiProperty({ description: 'Tipo de propiedad' })
+  tipoPropiedad: string;
 
-  @Column({ name: "obligado_solidario_id", nullable: true })
-  obligado_solidario_id?: number;
+  @Column({ type: 'text', nullable: true })
+  @ApiProperty({ description: 'Observaciones', nullable: true })
+  observaciones?: string;
 
-  @Column({ name: "propiedad_id" })
-  propiedad_id: number;
+  @Column({ type: 'enum', enum: ['activa', 'inactiva', 'cancelada', 'pendiente'], default: 'pendiente' })
+  @ApiProperty({ enum: ['activa', 'inactiva', 'cancelada', 'pendiente'], description: 'Estado de la renta' })
+  estado: string;
 
-  @Column({ name: "creado_por_user_id" })
-  creado_por_user_id: number;
+  @Column({ name: 'usuario_creacion' })
+  @ApiProperty({ description: 'Usuario que creó la renta' })
+  usuarioCreacion: string;
 
-  @CreateDateColumn({ name: "created_at" })
-  created_at: Date;
+  @CreateDateColumn({ name: 'fecha_creacion' })
+  @ApiProperty({ description: 'Fecha de creación' })
+  fechaCreacion: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
-  updated_at: Date;
-
-  @DeleteDateColumn({ name: "deleted_at" })
-  deleted_at: Date;
+  @UpdateDateColumn({ name: 'fecha_actualizacion' })
+  @ApiProperty({ description: 'Fecha de última actualización' })
+  fechaActualizacion: Date;
 
   // Relaciones
-  @OneToOne(() => Tenant)
-  @JoinColumn({ name: "inquilino_id" })
-  inquilino: Tenant;
+  @OneToOne(() => InquilinoPf, inquilinoPf => inquilinoPf.renta)
+  inquilinoPf?: InquilinoPf;
 
-  @OneToOne(() => Owner)
-  @JoinColumn({ name: "propietario_id" })
-  propietario: Owner;
+  @OneToOne(() => InquilinoPm, inquilinoPm => inquilinoPm.renta)
+  inquilinoPm?: InquilinoPm;
 
-@OneToOne(() => Guarantor, { nullable: true })
-@JoinColumn({ name: 'obligado_solidario_id' })
-obligado_solidario?: Guarantor;
+  @OneToOne(() => Propiedad, propiedad => propiedad.renta)
+  propiedad?: Propiedad;
 
-  @OneToOne(() => Property)
-  @JoinColumn({ name: "propiedad_id" })
-  propiedad: Property;
+  @OneToOne(() => PropietarioPf, propietarioPf => propietarioPf.renta)
+  propietarioPf?: PropietarioPf;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: "creado_por_user_id" })
-  creado_por_user: User; // Renombrada a 'creado_por_user'
+  @OneToOne(() => PropietarioPm, propietarioPm => propietarioPm.renta)
+  propietarioPm?: PropietarioPm;
+
+  @OneToOne(() => ObligadoSolidarioPf, obligadoPf => obligadoPf.renta)
+  obligadoPf?: ObligadoSolidarioPf;
+
+  @OneToOne(() => ObligadoSolidarioPm, obligadoPm => obligadoPm.renta)
+  obligadoPm?: ObligadoSolidarioPm;
 }

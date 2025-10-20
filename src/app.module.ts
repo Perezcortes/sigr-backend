@@ -18,11 +18,18 @@ import { Permission } from './permissions/entities/permission.entity';
 import { Office } from './offices/entities/office.entity';
 import { Estate } from './offices/entities/estate.entity';
 import { City } from './offices/entities/city.entity';
-import { Rental } from './rentals/entities/rental.entity';
-import { Tenant } from './rentals/entities/tenant.entity';
-import { Owner } from './rentals/entities/owner.entity';
-import { Guarantor } from './rentals/entities/guarantor.entity';
-import { Activation } from './rentals/entities/activation.entity';
+
+// Nuevas entities de rentals
+import { 
+  Rental, 
+  InquilinoPf, 
+  InquilinoPm, 
+  ObligadoSolidarioPf, 
+  ObligadoSolidarioPm, 
+  PropietarioPf, 
+  PropietarioPm, 
+  Propiedad 
+} from './rentals/entities';
 
 // Módulos
 import { AuthModule } from './auth/auth.module';
@@ -40,8 +47,6 @@ import { JwtAuthGuard } from './auth/guards/auth.guards';
 
 // Seeders
 import { InitialSeeder } from './database/seeders/initial.seeder';
-import { Property } from './rentals/entities/property.entity';
-import { Formalization } from './rentals/entities/formalization.entity';
 
 @Module({
   imports: [
@@ -60,6 +65,7 @@ import { Formalization } from './rentals/entities/formalization.entity';
 
     // CORRECCIÓN: Importar todos los repositorios que el seeder necesita.
     TypeOrmModule.forFeature([
+      // Entities existentes
       User,
       RefreshToken,
       Role,
@@ -67,12 +73,16 @@ import { Formalization } from './rentals/entities/formalization.entity';
       Office,
       Estate,
       City,
+      
+      // Nuevas entities de rentals
       Rental,
-      Tenant,
-      Owner,
-      Property,
-      Formalization,
-      Activation,
+      InquilinoPf,
+      InquilinoPm,
+      ObligadoSolidarioPf,
+      ObligadoSolidarioPm,
+      PropietarioPf,
+      PropietarioPm,
+      Propiedad,
     ]),
 
     // Módulos de funcionalidad
@@ -92,8 +102,8 @@ import { Formalization } from './rentals/entities/formalization.entity';
     InitialSeeder, // Agregar el seeder aquí
     // Aplicar JwtAuthGuard globalmente (opcional)
     // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard,
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,
     // },
   ],
 })

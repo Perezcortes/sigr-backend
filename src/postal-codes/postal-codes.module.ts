@@ -7,5 +7,6 @@ import { PostalCodesService } from './postal-codes.service';
   imports: [HttpModule], // Permite usar HttpService en este módulo
   controllers: [PostalCodesController],
   providers: [PostalCodesService],
+  exports: [PostalCodesService],
 })
 export class PostalCodesModule {}
