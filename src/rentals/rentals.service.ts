@@ -42,9 +42,9 @@ export class RentalsService {
     await queryRunner.startTransaction();
 
     try {
-      // Validar código postal de la propiedad
-      if (createRentalDto.propiedad?.cp) {
-        await this.validatePostalCode(createRentalDto.propiedad.cp);
+      // Validar código postal de la propiedad (usa domicilioPropiedad ahora)
+      if (createRentalDto.domicilioPropiedad?.cp) {
+        await this.validatePostalCode(createRentalDto.domicilioPropiedad.cp);
       }
 
       // Crear la renta principal
@@ -52,7 +52,8 @@ export class RentalsService {
         tipoInquilino: createRentalDto.tipoInquilino,
         tipoObligado: createRentalDto.tipoObligado || "fisica",
         tipoPropietario: createRentalDto.tipoPropietario || "fisica",
-        tipoPropiedad: createRentalDto.tipoPropiedad || "casa",
+        // tipoPropiedad ahora viene de datosInmueble
+        tipoPropiedad: createRentalDto.datosInmueble?.tipoInmueble || "casa",
         observaciones: createRentalDto.observaciones,
         usuarioCreacion: createRentalDto.usuarioCreacion,
         estado: "pendiente",
@@ -60,59 +61,41 @@ export class RentalsService {
 
       const savedRental = await queryRunner.manager.save(rental);
 
-      // Crear propiedad si se proporciona
-      if (createRentalDto.propiedad) {
+      // Crear propiedad si se proporciona (usa ambos DTOs ahora)
+      if (createRentalDto.domicilioPropiedad && createRentalDto.datosInmueble) {
+        // Combinar los datos de domicilio e inmueble
+        const propiedadData = {
+          ...createRentalDto.domicilioPropiedad,
+          ...createRentalDto.datosInmueble,
+        };
+
         await this.propiedadService.createPropiedad(
-          savedRental.id, 
-          createRentalDto.propiedad, 
-          createRentalDto.tipoPropiedad, 
-          queryRunner
+          savedRental.id,
+          propiedadData,
+          // tipoPropiedad ya no se pasa por separado, viene en datosInmueble
+          queryRunner,
         );
       }
 
-      // Crear inquilino según el tipo
+      // Crear inquilino según el tipo 
       if (createRentalDto.tipoInquilino === "fisica" && createRentalDto.inquilinoPf) {
-        await this.inquilinoService.createInquilinoPersonaFisica(
-          savedRental.id, 
-          createRentalDto.inquilinoPf, 
-          queryRunner
-        );
+        await this.inquilinoService.createInquilinoPersonaFisica(savedRental.id, createRentalDto.inquilinoPf, queryRunner);
       } else if (createRentalDto.tipoInquilino === "moral" && createRentalDto.inquilinoPm) {
-        await this.inquilinoService.createInquilinoPersonaMoral(
-          savedRental.id, 
-          createRentalDto.inquilinoPm, 
-          queryRunner
-        );
+        await this.inquilinoService.createInquilinoPersonaMoral(savedRental.id, createRentalDto.inquilinoPm, queryRunner);
       }
 
       // Crear propietario según el tipo
       if (createRentalDto.tipoPropietario === "fisica" && createRentalDto.propietarioPf) {
-        await this.propietarioService.createPropietarioPersonaFisica(
-          savedRental.id, 
-          createRentalDto.propietarioPf, 
-          queryRunner
-        );
+        await this.propietarioService.createPropietarioPersonaFisica(savedRental.id, createRentalDto.propietarioPf, queryRunner);
       } else if (createRentalDto.tipoPropietario === "moral" && createRentalDto.propietarioPm) {
-        await this.propietarioService.createPropietarioPersonaMoral(
-          savedRental.id, 
-          createRentalDto.propietarioPm, 
-          queryRunner
-        );
+        await this.propietarioService.createPropietarioPersonaMoral(savedRental.id, createRentalDto.propietarioPm, queryRunner);
       }
 
       // Crear obligado solidario si se proporciona
       if (createRentalDto.tipoObligado === "fisica" && createRentalDto.obligadoPf) {
-        await this.obligadoSolidarioService.createObligadoPersonaFisica(
-          savedRental.id, 
-          createRentalDto.obligadoPf, 
-          queryRunner
-        );
+        await this.obligadoSolidarioService.createObligadoPersonaFisica(savedRental.id, createRentalDto.obligadoPf, queryRunner);
       } else if (createRentalDto.tipoObligado === "moral" && createRentalDto.obligadoPm) {
-        await this.obligadoSolidarioService.createObligadoPersonaMoral(
-          savedRental.id, 
-          createRentalDto.obligadoPm, 
-          queryRunner
-        );
+        await this.obligadoSolidarioService.createObligadoPersonaMoral(savedRental.id, createRentalDto.obligadoPm, queryRunner);
       }
 
       await queryRunner.commitTransaction();
@@ -163,7 +146,7 @@ export class RentalsService {
 
   async updateTenant(rentalId: string, updateTenantDto: any): Promise<Rental> {
     //console.log('Actualizando inquilino para rentalId:', rentalId);
-    
+
     const rental = await this.findOneRental(rentalId);
     //console.log('Rental encontrado - tipoInquilino:', rental.tipoInquilino);
 
@@ -174,21 +157,13 @@ export class RentalsService {
     try {
       if (rental.tipoInquilino === "fisica" && rental.inquilinoPf) {
         //console.log('Actualizando Inquilino PF con ID:', rental.inquilinoPf.id);
-        await this.inquilinoService.updateInquilinoPersonaFisica(
-          rental.inquilinoPf.id, 
-          updateTenantDto, 
-          queryRunner
-        );
+        await this.inquilinoService.updateInquilinoPersonaFisica(rental.inquilinoPf.id, updateTenantDto, queryRunner);
       } else if (rental.tipoInquilino === "moral" && rental.inquilinoPm) {
         //console.log('Actualizando Inquilino PM con ID:', rental.inquilinoPm.id);
-        await this.inquilinoService.updateInquilinoPersonaMoral(
-          rental.inquilinoPm.id, 
-          updateTenantDto, 
-          queryRunner
-        );
+        await this.inquilinoService.updateInquilinoPersonaMoral(rental.inquilinoPm.id, updateTenantDto, queryRunner);
       } else {
         //console.log('No se pudo encontrar el inquilino para actualizar');
-        throw new NotFoundException('Inquilino no encontrado para actualizar');
+        throw new NotFoundException("Inquilino no encontrado para actualizar");
       }
 
       await queryRunner.commitTransaction();
@@ -205,26 +180,18 @@ export class RentalsService {
 
   async updateOwner(rentalId: string, updateOwnerDto: any): Promise<Rental> {
     const rental = await this.findOneRental(rentalId);
-    
+
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       if (rental.tipoPropietario === "fisica" && rental.propietarioPf) {
-        await this.propietarioService.updatePropietarioPersonaFisica(
-          rental.propietarioPf.id, 
-          updateOwnerDto, 
-          queryRunner
-        );
+        await this.propietarioService.updatePropietarioPersonaFisica(rental.propietarioPf.id, updateOwnerDto, queryRunner);
       } else if (rental.tipoPropietario === "moral" && rental.propietarioPm) {
-        await this.propietarioService.updatePropietarioPersonaMoral(
-          rental.propietarioPm.id, 
-          updateOwnerDto, 
-          queryRunner
-        );
+        await this.propietarioService.updatePropietarioPersonaMoral(rental.propietarioPm.id, updateOwnerDto, queryRunner);
       } else {
-        throw new NotFoundException('Propietario no encontrado para actualizar');
+        throw new NotFoundException("Propietario no encontrado para actualizar");
       }
 
       await queryRunner.commitTransaction();
@@ -239,20 +206,16 @@ export class RentalsService {
 
   async updateProperty(rentalId: string, updatePropertyDto: any): Promise<Rental> {
     const rental = await this.findOneRental(rentalId);
-    
+
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       if (rental.propiedad) {
-        await this.propiedadService.updatePropiedad(
-          rental.propiedad.id, 
-          updatePropertyDto, 
-          queryRunner
-        );
+        await this.propiedadService.updatePropiedad(rental.propiedad.id, updatePropertyDto, queryRunner);
       } else {
-        throw new NotFoundException('Propiedad no encontrada para actualizar');
+        throw new NotFoundException("Propiedad no encontrada para actualizar");
       }
 
       await queryRunner.commitTransaction();
@@ -307,6 +270,46 @@ export class RentalsService {
       throw new NotFoundException("Datos del inquilino no encontrados");
     } catch (error) {
       throw error;
+    }
+  }
+
+  async findObligadoByRentalId(rentalId: string): Promise<any> {
+    try {
+      const rental = await this.rentalRepository.findOne({
+        where: { id: rentalId },
+      });
+
+      if (!rental) {
+        throw new NotFoundException(`Renta con ID ${rentalId} no encontrada`);
+      }
+
+      return await this.obligadoSolidarioService.findObligadoByRentalId(rentalId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateObligado(rentalId: string, updateObligadoDto: any): Promise<Rental> {
+    console.log("Actualizando obligado solidario para rentalId:", rentalId);
+
+    const rental = await this.findOneRental(rentalId);
+
+    const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.obligadoSolidarioService.updateObligado(rentalId, updateObligadoDto, queryRunner);
+
+      await queryRunner.commitTransaction();
+      console.log("Obligado solidario actualizado exitosamente");
+      return await this.findOneRental(rentalId);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error("Error al actualizar el obligado solidario:", error);
+      throw new BadRequestException(`Error al actualizar el obligado solidario: ${error.message}`);
+    } finally {
+      await queryRunner.release();
     }
   }
 }

@@ -64,7 +64,28 @@ export class RentalsController {
   @ApiResponse({ status: 404, description: "Renta no encontrada." })
   async updateTenant(@Param("id") rentalId: string, @Body() updateTenantDto: any): Promise<Rental> {
     return this.rentalsService.updateTenant(rentalId, updateTenantDto);
-  }  
+  }
+
+  // =================== OBLIGADO SOLIDARIO ===================
+  @Get(":id/obligado")
+  @Permissions("ver_rentas")
+  @ApiOperation({ summary: "Obtener datos del obligado solidario por ID de renta" })
+  @ApiResponse({ status: 200, description: "Datos del obligado solidario obtenidos exitosamente." })
+  @ApiResponse({ status: 404, description: "Renta u obligado no encontrado." })
+  async getObligadoByRentalId(@Param("id") rentalId: string): Promise<any> {
+    return this.rentalsService.findObligadoByRentalId(rentalId);
+  }
+
+  @Put(":id/obligado")
+  @Permissions("editar_rentas")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Actualizar datos del obligado solidario" })
+  @ApiBody({ type: Object })
+  @ApiResponse({ status: 200, description: "Obligado solidario actualizado exitosamente." })
+  @ApiResponse({ status: 404, description: "Renta no encontrada." })
+  async updateObligado(@Param("id") rentalId: string, @Body() updateObligadoDto: any): Promise<Rental> {
+    return this.rentalsService.updateObligado(rentalId, updateObligadoDto);
+  }
 
   @Put(":id/propietario")
   @Permissions("editar_rentas")

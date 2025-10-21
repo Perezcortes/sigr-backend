@@ -1,3 +1,4 @@
+// src/rentals/entities/obligado-solidario-pm.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Rental } from './rental.entity';
@@ -127,8 +128,8 @@ export class ObligadoSolidarioPm {
   @ApiProperty({ description: 'Apellido materno del representante legal' })
   repLegalApellidoMaterno: string;
 
-  @Column({ name: 'rep_legal_sexo' })
-  @ApiProperty({ description: 'Sexo del representante legal' })
+  @Column({ name: 'rep_legal_sexo', type: 'enum', enum: ['masculino', 'femenino'] })
+  @ApiProperty({ enum: ['masculino', 'femenino'], description: 'Sexo del representante legal' })
   repLegalSexo: string;
 
   @Column({ name: 'rep_legal_rfc', nullable: true })
@@ -146,6 +147,149 @@ export class ObligadoSolidarioPm {
   @Column({ name: 'rep_legal_telefono', nullable: true })
   @ApiProperty({ description: 'Teléfono del representante legal', nullable: true })
   repLegalTelefono?: string;
+
+  // DOMICILIO REPRESENTANTE LEGAL 
+  @Column({ name: 'rep_legal_calle', nullable: true })
+  @ApiProperty({ description: 'Calle representante legal', nullable: true })
+  repLegalCalle?: string;
+
+  @Column({ name: 'rep_legal_num_ext', nullable: true })
+  @ApiProperty({ description: 'Número exterior representante', nullable: true })
+  repLegalNumExt?: string;
+
+  @Column({ name: 'rep_legal_num_int', nullable: true })
+  @ApiProperty({ description: 'Número interior representante', nullable: true })
+  repLegalNumInt?: string;
+
+  @Column({ name: 'rep_legal_cp', nullable: true })
+  @ApiProperty({ description: 'Código postal representante', nullable: true })
+  repLegalCp?: string;
+
+  @Column({ name: 'rep_legal_colonia', nullable: true })
+  @ApiProperty({ description: 'Colonia representante', nullable: true })
+  repLegalColonia?: string;
+
+  @Column({ name: 'rep_legal_municipio', nullable: true })
+  @ApiProperty({ description: 'Municipio representante', nullable: true })
+  repLegalMunicipio?: string;
+
+  @Column({ name: 'rep_legal_estado', nullable: true })
+  @ApiProperty({ description: 'Estado representante', nullable: true })
+  repLegalEstado?: string;
+
+  // FACULTADES DEL REPRESENTANTE 
+  @Column({ name: 'facultades_acta', type: 'boolean', default: false })
+  @ApiProperty({ description: 'Facultades constan en acta constitutiva' })
+  facultadesActa: boolean;
+
+  @Column({ name: 'facultades_escritura_numero', nullable: true })
+  @ApiProperty({ description: 'Escritura pública número', nullable: true })
+  facultadesEscrituraNumero?: string;
+
+  @Column({ name: 'facultades_notario_numero', nullable: true })
+  @ApiProperty({ description: 'Notario número', nullable: true })
+  facultadesNotarioNumero?: string;
+
+  @Column({ name: 'facultades_fecha_escritura', type: 'date', nullable: true })
+  @ApiProperty({ description: 'Fecha de escritura facultades', nullable: true })
+  facultadesFechaEscritura?: Date;
+
+  @Column({ name: 'facultades_numero_inscripcion', nullable: true })
+  @ApiProperty({ description: 'Número de inscripción registro', nullable: true })
+  facultadesNumeroInscripcion?: string;
+
+  @Column({ name: 'facultades_fecha_inscripcion', type: 'date', nullable: true })
+  @ApiProperty({ description: 'Fecha de inscripción', nullable: true })
+  facultadesFechaInscripcion?: Date;
+
+  @Column({ name: 'facultades_ciudad_registro', nullable: true })
+  @ApiProperty({ description: 'Ciudad de registro facultades', nullable: true })
+  facultadesCiudadRegistro?: string;
+
+  @Column({ name: 'facultades_estado_registro', nullable: true })
+  @ApiProperty({ description: 'Estado de registro facultades', nullable: true })
+  facultadesEstadoRegistro?: string;
+
+  @Column({ name: 'tipo_representacion', type: 'enum', enum: ['administrador_unico', 'presidente_consejo', 'socio_administrador', 'gerente', 'otro'], nullable: true })
+  @ApiProperty({ enum: ['administrador_unico', 'presidente_consejo', 'socio_administrador', 'gerente', 'otro'], description: 'Tipo de representación', nullable: true })
+  tipoRepresentacion?: string;
+
+  @Column({ name: 'tipo_representacion_otro', nullable: true })
+  @ApiProperty({ description: 'Especifique tipo representación', nullable: true })
+  tipoRepresentacionOtro?: string;
+
+  // PROPIEDAD EN GARANTÍA (OPCIONAL) 
+  @Column({ name: 'garantia_calle', nullable: true })
+  @ApiProperty({ description: 'Calle propiedad garantía', nullable: true })
+  garantiaCalle?: string;
+
+  @Column({ name: 'garantia_num_ext', nullable: true })
+  @ApiProperty({ description: 'Número exterior garantía', nullable: true })
+  garantiaNumExt?: string;
+
+  @Column({ name: 'garantia_num_int', nullable: true })
+  @ApiProperty({ description: 'Número interior garantía', nullable: true })
+  garantiaNumInt?: string;
+
+  @Column({ name: 'garantia_cp', nullable: true })
+  @ApiProperty({ description: 'Código postal garantía', nullable: true })
+  garantiaCp?: string;
+
+  @Column({ name: 'garantia_colonia', nullable: true })
+  @ApiProperty({ description: 'Colonia garantía', nullable: true })
+  garantiaColonia?: string;
+
+  @Column({ name: 'garantia_municipio', nullable: true })
+  @ApiProperty({ description: 'Municipio garantía', nullable: true })
+  garantiaMunicipio?: string;
+
+  @Column({ name: 'garantia_estado', nullable: true })
+  @ApiProperty({ description: 'Estado garantía', nullable: true })
+  garantiaEstado?: string;
+
+  @Column({ name: 'garantia_numero_escritura', nullable: true })
+  @ApiProperty({ description: 'Número de escritura garantía', nullable: true })
+  garantiaNumeroEscritura?: string;
+
+  @Column({ name: 'garantia_fecha_escritura', type: 'date', nullable: true })
+  @ApiProperty({ description: 'Fecha de escritura garantía', nullable: true })
+  garantiaFechaEscritura?: Date;
+
+  @Column({ name: 'garantia_notario_nombres', nullable: true })
+  @ApiProperty({ description: 'Nombre(s) notario garantía', nullable: true })
+  garantiaNotarioNombres?: string;
+
+  @Column({ name: 'garantia_notario_apellido_paterno', nullable: true })
+  @ApiProperty({ description: 'Apellido paterno notario garantía', nullable: true })
+  garantiaNotarioApellidoPaterno?: string;
+
+  @Column({ name: 'garantia_notario_apellido_materno', nullable: true })
+  @ApiProperty({ description: 'Apellido materno notario garantía', nullable: true })
+  garantiaNotarioApellidoMaterno?: string;
+
+  @Column({ name: 'garantia_notario_numero', nullable: true })
+  @ApiProperty({ description: 'Número de notaría garantía', nullable: true })
+  garantiaNotarioNumero?: string;
+
+  @Column({ name: 'garantia_notario_lugar', nullable: true })
+  @ApiProperty({ description: 'Lugar de notaría garantía', nullable: true })
+  garantiaNotarioLugar?: string;
+
+  @Column({ name: 'garantia_registro_publico', nullable: true })
+  @ApiProperty({ description: 'Registro público propiedad', nullable: true })
+  garantiaRegistroPublico?: string;
+
+  @Column({ name: 'garantia_folio_real', nullable: true })
+  @ApiProperty({ description: 'Folio real electrónico', nullable: true })
+  garantiaFolioReal?: string;
+
+  @Column({ name: 'garantia_fecha_registro', type: 'date', nullable: true })
+  @ApiProperty({ description: 'Fecha de registro', nullable: true })
+  garantiaFechaRegistro?: Date;
+
+  @Column({ name: 'garantia_boleta_predial', nullable: true })
+  @ApiProperty({ description: 'Número de boleta predial', nullable: true })
+  garantiaBoletaPredial?: string;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   @ApiProperty({ description: 'Fecha de creación' })

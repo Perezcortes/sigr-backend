@@ -1,3 +1,4 @@
+// src/rentals/dto/create-rental.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsString, IsOptional, IsEnum, ValidateNested, IsBoolean } from 'class-validator';
@@ -5,6 +6,7 @@ import { InquilinoPfDto, InquilinoPmDto, UsoPropiedadDto } from './inquilino';
 import { ObligadoPfDto, ObligadoPmDto } from './obligado-solidario';
 import { PropietarioPfDto, PropietarioPmDto } from './propietario';
 import { DomicilioDto } from './shared/domicilio.dto';
+import { DatosInmuebleDto } from './shared/propiedad.dto';
 
 export enum TipoPersona {
   FISICA = 'fisica',
@@ -66,14 +68,17 @@ export class CreateRentalDto {
   @Type(() => PropietarioPmDto)
   propietarioPm?: PropietarioPmDto;
 
-  @ApiProperty({ type: DomicilioDto, description: 'Datos de la propiedad' })
+  // DATOS DE DOMICILIO DE LA PROPIEDAD
+  @ApiProperty({ type: DomicilioDto, description: 'Domicilio de la propiedad' })
   @ValidateNested()
   @Type(() => DomicilioDto)
-  propiedad: DomicilioDto;
+  domicilioPropiedad: DomicilioDto;
 
-  @ApiProperty({ description: 'Tipo de propiedad' })
-  @IsString()
-  tipoPropiedad: string;
+  // DATOS DEL INMUEBLE
+  @ApiProperty({ type: DatosInmuebleDto, description: 'Datos del inmueble' })
+  @ValidateNested()
+  @Type(() => DatosInmuebleDto)
+  datosInmueble: DatosInmuebleDto;
 
   @ApiPropertyOptional({ description: 'Observaciones' })
   @IsOptional()
