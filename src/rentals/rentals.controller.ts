@@ -110,10 +110,20 @@ export class RentalsController {
   }
 
   // =================== PROPIEDAD ===================
+  @Get(":id/propiedad")
+  @Permissions("ver_rentas")
+  @ApiOperation({ summary: "Obtener datos de la propiedad por ID de renta" })
+  @ApiResponse({ status: 200, description: "Datos de la propiedad obtenidos exitosamente." })
+  @ApiResponse({ status: 404, description: "Renta o propiedad no encontrada." })
+  async getPropertyByRentalId(@Param("id") rentalId: string): Promise<any> {
+    return this.rentalsService.findPropertyByRentalId(rentalId);
+  }
+
   @Put(":id/propiedad")
   @Permissions("editar_rentas")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Actualizar datos de la propiedad" })
+  @ApiBody({ type: Object })
   @ApiResponse({ status: 200, description: "Propiedad actualizada exitosamente." })
   @ApiResponse({ status: 404, description: "Renta no encontrada." })
   async updateProperty(@Param("id") rentalId: string, @Body() updatePropertyDto: any): Promise<Rental> {

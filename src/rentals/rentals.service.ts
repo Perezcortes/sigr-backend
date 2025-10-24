@@ -77,7 +77,7 @@ export class RentalsService {
         );
       }
 
-      // Crear inquilino según el tipo 
+      // Crear inquilino según el tipo
       if (createRentalDto.tipoInquilino === "fisica" && createRentalDto.inquilinoPf) {
         await this.inquilinoService.createInquilinoPersonaFisica(savedRental.id, createRentalDto.inquilinoPf, queryRunner);
       } else if (createRentalDto.tipoInquilino === "moral" && createRentalDto.inquilinoPm) {
@@ -145,10 +145,10 @@ export class RentalsService {
   }
 
   async updateTenant(rentalId: string, updateTenantDto: any): Promise<Rental> {
-    console.log('Actualizando inquilino para rentalId:', rentalId);
+    console.log("Actualizando inquilino para rentalId:", rentalId);
 
     const rental = await this.findOneRental(rentalId);
-    console.log('Rental encontrado - tipoInquilino:', rental.tipoInquilino);
+    console.log("Rental encontrado - tipoInquilino:", rental.tipoInquilino);
 
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
@@ -156,22 +156,22 @@ export class RentalsService {
 
     try {
       if (rental.tipoInquilino === "fisica" && rental.inquilinoPf) {
-        console.log('Actualizando Inquilino PF con ID:', rental.inquilinoPf.id);
+        console.log("Actualizando Inquilino PF con ID:", rental.inquilinoPf.id);
         await this.inquilinoService.updateInquilinoPersonaFisica(rental.inquilinoPf.id, updateTenantDto, queryRunner);
       } else if (rental.tipoInquilino === "moral" && rental.inquilinoPm) {
-        console.log('Actualizando Inquilino PM con ID:', rental.inquilinoPm.id);
+        console.log("Actualizando Inquilino PM con ID:", rental.inquilinoPm.id);
         await this.inquilinoService.updateInquilinoPersonaMoral(rental.inquilinoPm.id, updateTenantDto, queryRunner);
       } else {
-        console.log('No se pudo encontrar el inquilino para actualizar');
+        console.log("No se pudo encontrar el inquilino para actualizar");
         throw new NotFoundException("Inquilino no encontrado para actualizar");
       }
 
       await queryRunner.commitTransaction();
-      console.log('Actualización completada exitosamente');
+      console.log("Actualización completada exitosamente");
       return await this.findOneRental(rentalId);
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      console.error('Error al actualizar el inquilino:', error);
+      console.error("Error al actualizar el inquilino:", error);
       throw new BadRequestException(`Error al actualizar el inquilino: ${error.message}`);
     } finally {
       await queryRunner.release();
@@ -182,7 +182,7 @@ export class RentalsService {
     console.log("Actualizando propietario para rentalId:", rentalId);
 
     const rental = await this.findOneRental(rentalId);
-    console.log('Rental encontrado - tipoPropietario:', rental.tipoPropietario);
+    console.log("Rental encontrado - tipoPropietario:", rental.tipoPropietario);
 
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
@@ -304,6 +304,28 @@ export class RentalsService {
     }
   }
 
+  async findPropertyByRentalId(rentalId: string): Promise<any> {
+    try {
+      const rental = await this.rentalRepository.findOne({
+        where: { id: rentalId },
+        relations: ["propiedad"],
+      });
+
+      if (!rental) {
+        throw new NotFoundException(`Renta con ID ${rentalId} no encontrada`);
+      }
+
+      if (!rental.propiedad) {
+        throw new NotFoundException("Datos de la propiedad no encontrados");
+      }
+
+      // Usar el servicio de propiedad para transformar los datos
+      return this.propiedadService.transformPropiedadToFormData(rental.propiedad);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async updateObligado(rentalId: string, updateObligadoDto: any): Promise<Rental> {
     console.log("Actualizando obligado solidario para rentalId:", rentalId);
 
@@ -329,7 +351,7 @@ export class RentalsService {
   }
 
   async updateOwner(rentalId: string, updateOwnerDto: any): Promise<Rental> {
-    console.warn('El método updateOwner está deprecado. Usa updatePropietario en su lugar.');
+    console.warn("El método updateOwner está deprecado. Usa updatePropietario en su lugar.");
     return this.updatePropietario(rentalId, updateOwnerDto);
   }
 }
