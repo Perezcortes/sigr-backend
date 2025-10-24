@@ -145,10 +145,10 @@ export class RentalsService {
   }
 
   async updateTenant(rentalId: string, updateTenantDto: any): Promise<Rental> {
-    //console.log('Actualizando inquilino para rentalId:', rentalId);
+    console.log('Actualizando inquilino para rentalId:', rentalId);
 
     const rental = await this.findOneRental(rentalId);
-    //console.log('Rental encontrado - tipoInquilino:', rental.tipoInquilino);
+    console.log('Rental encontrado - tipoInquilino:', rental.tipoInquilino);
 
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
@@ -156,48 +156,47 @@ export class RentalsService {
 
     try {
       if (rental.tipoInquilino === "fisica" && rental.inquilinoPf) {
-        //console.log('Actualizando Inquilino PF con ID:', rental.inquilinoPf.id);
+        console.log('Actualizando Inquilino PF con ID:', rental.inquilinoPf.id);
         await this.inquilinoService.updateInquilinoPersonaFisica(rental.inquilinoPf.id, updateTenantDto, queryRunner);
       } else if (rental.tipoInquilino === "moral" && rental.inquilinoPm) {
-        //console.log('Actualizando Inquilino PM con ID:', rental.inquilinoPm.id);
+        console.log('Actualizando Inquilino PM con ID:', rental.inquilinoPm.id);
         await this.inquilinoService.updateInquilinoPersonaMoral(rental.inquilinoPm.id, updateTenantDto, queryRunner);
       } else {
-        //console.log('No se pudo encontrar el inquilino para actualizar');
+        console.log('No se pudo encontrar el inquilino para actualizar');
         throw new NotFoundException("Inquilino no encontrado para actualizar");
       }
 
       await queryRunner.commitTransaction();
-      //console.log('Actualización completada exitosamente');
+      console.log('Actualización completada exitosamente');
       return await this.findOneRental(rentalId);
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      //console.error('Error al actualizar el inquilino:', error);
+      console.error('Error al actualizar el inquilino:', error);
       throw new BadRequestException(`Error al actualizar el inquilino: ${error.message}`);
     } finally {
       await queryRunner.release();
     }
   }
 
-  async updateOwner(rentalId: string, updateOwnerDto: any): Promise<Rental> {
+  async updatePropietario(rentalId: string, updatePropietarioDto: any): Promise<Rental> {
+    console.log("Actualizando propietario para rentalId:", rentalId);
+
     const rental = await this.findOneRental(rentalId);
+    console.log('Rental encontrado - tipoPropietario:', rental.tipoPropietario);
 
     const queryRunner = this.rentalRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      if (rental.tipoPropietario === "fisica" && rental.propietarioPf) {
-        await this.propietarioService.updatePropietarioPersonaFisica(rental.propietarioPf.id, updateOwnerDto, queryRunner);
-      } else if (rental.tipoPropietario === "moral" && rental.propietarioPm) {
-        await this.propietarioService.updatePropietarioPersonaMoral(rental.propietarioPm.id, updateOwnerDto, queryRunner);
-      } else {
-        throw new NotFoundException("Propietario no encontrado para actualizar");
-      }
+      await this.propietarioService.updatePropietario(rentalId, updatePropietarioDto, queryRunner);
 
       await queryRunner.commitTransaction();
+      console.log("Propietario actualizado exitosamente");
       return await this.findOneRental(rentalId);
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      console.error("Error al actualizar el propietario:", error);
       throw new BadRequestException(`Error al actualizar el propietario: ${error.message}`);
     } finally {
       await queryRunner.release();
@@ -289,6 +288,22 @@ export class RentalsService {
     }
   }
 
+  async findPropietarioByRentalId(rentalId: string): Promise<any> {
+    try {
+      const rental = await this.rentalRepository.findOne({
+        where: { id: rentalId },
+      });
+
+      if (!rental) {
+        throw new NotFoundException(`Renta con ID ${rentalId} no encontrada`);
+      }
+
+      return await this.propietarioService.findPropietarioByRentalId(rentalId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async updateObligado(rentalId: string, updateObligadoDto: any): Promise<Rental> {
     console.log("Actualizando obligado solidario para rentalId:", rentalId);
 
@@ -311,5 +326,10 @@ export class RentalsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async updateOwner(rentalId: string, updateOwnerDto: any): Promise<Rental> {
+    console.warn('El método updateOwner está deprecado. Usa updatePropietario en su lugar.');
+    return this.updatePropietario(rentalId, updateOwnerDto);
   }
 }
