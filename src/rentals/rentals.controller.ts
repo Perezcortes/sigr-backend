@@ -46,6 +46,7 @@ export class RentalsController {
     return this.rentalsService.findOneRental(id);
   }
 
+  // =================== INQUILINO ===================
   @Get(":id/inquilino")
   @Permissions("ver_rentas")
   @ApiOperation({ summary: "Obtener datos del inquilino por ID de renta" })
@@ -87,16 +88,28 @@ export class RentalsController {
     return this.rentalsService.updateObligado(rentalId, updateObligadoDto);
   }
 
+  // =================== PROPIETARIO ===================
+  @Get(":id/propietario")
+  @Permissions("ver_rentas")
+  @ApiOperation({ summary: "Obtener datos del propietario por ID de renta" })
+  @ApiResponse({ status: 200, description: "Datos del propietario obtenidos exitosamente." })
+  @ApiResponse({ status: 404, description: "Renta o propietario no encontrado." })
+  async getPropietarioByRentalId(@Param("id") rentalId: string): Promise<any> {
+    return this.rentalsService.findPropietarioByRentalId(rentalId);
+  }
+
   @Put(":id/propietario")
   @Permissions("editar_rentas")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Actualizar datos del propietario" })
+  @ApiBody({ type: Object })
   @ApiResponse({ status: 200, description: "Propietario actualizado exitosamente." })
   @ApiResponse({ status: 404, description: "Renta no encontrada." })
-  async updateOwner(@Param("id") rentalId: string, @Body() updateOwnerDto: any): Promise<Rental> {
-    return this.rentalsService.updateOwner(rentalId, updateOwnerDto);
+  async updatePropietario(@Param("id") rentalId: string, @Body() updatePropietarioDto: any): Promise<Rental> {
+    return this.rentalsService.updatePropietario(rentalId, updatePropietarioDto);
   }
 
+  // =================== PROPIEDAD ===================
   @Put(":id/propiedad")
   @Permissions("editar_rentas")
   @HttpCode(HttpStatus.OK)
